@@ -31,6 +31,23 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _handleGuestSignIn() async {
+    setState(() => _isLoading = true);
+    final provider = context.read<ExpenseProvider>();
+    final success = await provider.signInAsGuest();
+    if (mounted) {
+      setState(() => _isLoading = false);
+      if (!success && provider.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(provider.error!),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -153,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     height: 50,
                     child: OutlinedButton(
-                      onPressed: _isLoading ? null : _handleGoogleSignIn,
+                      onPressed: _isLoading ? null : _handleGuestSignIn,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: isDark ? Colors.white : AppTheme.pureBlack,
                         side: BorderSide(

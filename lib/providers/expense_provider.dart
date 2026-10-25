@@ -46,6 +46,22 @@ class ExpenseProvider extends ChangeNotifier {
     }
   }
 
+  Future<bool> signInAsGuest() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _supabaseService.signInAsGuest();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _error = 'Guest sign in failed: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> signOut() async {
     await _supabaseService.signOut();
     notifyListeners();

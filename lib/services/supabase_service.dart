@@ -69,6 +69,11 @@ class SupabaseService {
     return _currentUser;
   }
 
+  Future<AuthUser> signInAsGuest() async {
+    _currentUser = AuthUser.mockGoogleUser();
+    return _currentUser!;
+  }
+
   Future<void> signOut() async {
     if (!isDemoMode && _client != null) {
       try {
