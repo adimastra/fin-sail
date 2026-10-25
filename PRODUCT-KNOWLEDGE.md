@@ -7,7 +7,7 @@ This document contains a thorough architectural and feature-level explanation of
 ## 📌 Table of Contents
 1. [Product Overview & Value Proposition](#1-product-overview--value-proposition)
 2. [High-Level System Architecture](#2-high-level-system-architecture)
-3. [Module 1: Authentication & Onboarding](#3-module-1-authentication--onboarding)
+3. [Module 1: Authentication & Onboarding (Phone, Google SSO, Guest)](#3-module-1-authentication--onboarding)
 4. [Module 2: Overview & Home Dashboard](#4-module-2-overview--home-dashboard)
 5. [Module 3: Manual Expense Entry (Keypad)](#5-module-3-manual-expense-entry-keypad)
 6. [Module 4: AI Receipt Scanner & OCR Vision](#6-module-4-ai-receipt-scanner--ocr-vision)
@@ -75,19 +75,25 @@ graph TD
 ---
 
 ## 3. Module 1: Authentication & Onboarding
-**File**: `lib/screens/login_screen.dart`, `lib/models/auth_user.dart`
+**File**: `lib/screens/login_screen.dart`, `lib/models/auth_user.dart`, `lib/services/supabase_service.dart`
 
 ### Features & Capabilities
-1. **Google Single Sign-On (SSO)**:
+1. **Phone Number & Password Registration & Sign-In Module**:
+   - **Interactive Mode Selector**: Segmented toggle between **"Sign In"** and **"Register"** seamlessly within the same card.
+   - **Country Code Prefix & Normalization**: Dedicated `+62` country code prefix badge with automatic phone number normalization (`0812...` -> `+62812...`). Supports international formats.
+   - **Secure Password Handling**: Enforces minimum 6-character length per Supabase standards. Includes interactive show/hide eye toggle.
+   - **Full Name & Confirmation**: On registration mode, prompts for full name (saved to Supabase user metadata) and confirm password validation.
+   - **Direct Supabase Auth**: Calls `_client.auth.signUp(phone: ..., password: ...)` and `signInWithPassword()`.
+2. **Strict Google Single Sign-On (SSO)**:
    - Powered by Supabase Auth (`supabase.auth.signInWithOAuth(OAuthProvider.google)`).
-   - Seamless authentication without passwords.
-2. **Quick Demo / Guest Access**:
+   - **Strict Auth Guarding**: Fails gracefully with floating error SnackBars if OAuth is cancelled or unconfigured. Never silently falls back to mock accounts, ensuring the home page is only accessible upon genuine authentication.
+   - **Auth State Stream**: Supabase `onAuthStateChange` listener continuously synchronizes the user's active session.
+3. **Quick Demo / Guest Access**:
    - 1-Tap entry allowing immediate evaluation of the application without an account.
-   - Pre-seeds realistic Indonesian Rupiah (Rp) / multi-currency transactions, categories, and sample receipts.
-3. **Branded Visual Experience**:
+   - Explicitly invokes `signInAsGuest()`, pre-seeding realistic Indonesian Rupiah (Rp) / multi-currency transactions, categories, and sample receipts in-memory without violating PostgreSQL RLS policies.
+4. **Branded Visual Experience**:
    - Official **Fin Sail** header with stylized boat/wave logo in Sea Blue (`#0284C7`).
-   - Feature highlight cards explaining *Receipt-First Tracking*, *Analytics & Monthly Trends*, and *End-to-End Privacy*.
-   - Dark mode compliant Google SSO button (white pill with multi-color G-icon) and translucent outline demo button.
+   - Clean dark-mode card surfaces (`#18181B`), crisp typography, Sea Blue primary submit button, and subtle security footer.
 
 ---
 
@@ -249,7 +255,7 @@ Fin Sail offers two complementary analytical views switched via an ergonomic top
 6. **Cloud & Storage Status**:
    - Live badge showing Supabase connection status or Local Demo Mode.
    - Gemini 2.5 Flash Vision OCR status badge.
-   - "Test Skeleton Loader" developer utility to preview shimmer loading states.
+   - "Test Skeleton Loader" developer utility to preview shimmer loading states (strictly guarded with `kDebugMode` so it is omitted from production releases).
 7. **Sign Out**:
    - Confirmation dialog terminating Supabase session and returning to login.
 
@@ -329,3 +335,25 @@ class ReceiptItem {
 2. **`public.categories`**: `id (UUID)`, `user_id (UUID null for system defaults)`, `name`, `emoji`, `color_hex`, `is_default (BOOLEAN)`, `icon_name`.
 3. **`public.transactions`**: `id (UUID)`, `user_id (UUID)`, `category_id (UUID FK categories)`, `amount (NUMERIC)`, `type (VARCHAR)`, `merchant`, `note`, `transaction_date (TIMESTAMPTZ)`, `receipt_url`, `has_receipt (BOOLEAN)`, `items (JSONB)`.
 4. **`storage.buckets`**: **`Receipts`** bucket configured with authenticated user upload policies.
+
+
+---
+
+## 13. Multi-Cloud Hosting & Continuous Deployment
+
+Fin Sail is engineered for high availability with automated dual-cloud deployments on every commit to `main`:
+
+### 1. Primary Host: Vercel Edge Global Network
+- **Production URL**: **[https://fin-sail.vercel.app](https://fin-sail.vercel.app)**
+- **Clean Root Domain**: Serves directly from `/` without path prefixing.
+- **SPA Rewrites (`vercel.json`)**: Configured with `{"source": "/(.*)", "destination": "/index.html"}` to ensure browser reloads or deep links never return 404s.
+- **Edge Performance**: Sub-100ms global latency with automatic Brotli compression.
+
+### 2. Secondary Host: GitHub Pages
+- **Production URL**: **[https://adimastra.github.io/fin-sail/](https://adimastra.github.io/fin-sail/)**
+- Compiled with `--base-href /fin-sail/` as a reliable public alternative.
+
+### 3. Automated CI/CD Pipeline (`.github/workflows/deploy.yml`)
+- **Static Analysis Gate**: `flutter analyze` runs with zero allowable warnings.
+- **Unit Test Gate**: All 24 unit and widget tests must pass with a 100% pass rate.
+- **Dual Compilation**: Compiles root bundle for Vercel, then subpath bundle for GitHub Pages with secret injection via `--dart-define`.

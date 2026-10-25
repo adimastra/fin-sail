@@ -1,5 +1,7 @@
 # ⛵ Fin Sail — Receipt Expense Tracker
 
+[![Vercel Live Demo](https://img.shields.io/badge/Vercel-Live%20Demo-black?logo=vercel&logoColor=white)](https://fin-sail.vercel.app)
+[![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Site-181717?logo=github&logoColor=white)](https://adimastra.github.io/fin-sail/)
 [![Flutter Web](https://img.shields.io/badge/Flutter-Web-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend%20%26%20Auth-3ECF8E?logo=supabase&logoColor=white)](https://supabase.com)
 [![Gemini](https://img.shields.io/badge/Gemini%202.5%20Flash-OCR%20Vision-4285F4?logo=google&logoColor=white)](https://ai.google.dev)
@@ -8,6 +10,10 @@
 **Fin Sail** is a pure expense tracking web application engineered with **Flutter Web**, optimized for a **mobile-first view**, and backed by **Supabase** with **Google Gemini 2.5 Flash** for automated receipt OCR extraction.
 
 Fin Sail is built around a single, uncompromising principle: **pure expense visibility**. By removing balance tracking, income management, and banking complications, it provides individuals with a fast, tactile, and aesthetic way to capture and analyze daily spending.
+
+### 🌐 Live Production Deployments
+- **Primary Domain (Vercel)**: **[https://fin-sail.vercel.app](https://fin-sail.vercel.app)**
+- **Secondary Domain (GitHub Pages)**: **[https://adimastra.github.io/fin-sail/](https://adimastra.github.io/fin-sail/)**
 
 ---
 
@@ -57,14 +63,18 @@ Fin Sail is built around a single, uncompromising principle: **pure expense visi
   - Category spending breakdown cards showing amount, percentage of total spend, and month-over-month trend badges (`+11% vs previous month`).
   - Tap any category card to open a drill-down transaction modal with matching category header branding.
 
-### 5. 🔐 Authentication & Zero-Friction Demo Mode
-- **Google SSO**: Powered by Supabase Auth with Row-Level Security (RLS).
+### 5. 🔐 Multi-Option Authentication & Strict Guards
+- **Phone Number & Password Registration**: Built-in register and sign-in module with automatic country code normalization (`+62`), input validation, and password visibility toggling.
+- **Strict Google SSO**: Powered by Supabase Auth with Row-Level Security (RLS). Strict guards prevent unauthenticated access upon aborted or failed OAuth redirects.
 - **1-Tap Quick Demo / Guest Access**: Instant access with realistic pre-seeded expenses, categories, and receipts—no credentials or setup needed to explore.
 
 ### 6. 📱 Responsive Desktop Mobile Canvas
 - Renders inside an ultra-sleek, centered smartphone canvas on desktop displays.
 - Includes a desktop top bar with branding, connection status badge, and fullscreen toggle.
 - Expands automatically to 100% full-bleed layout on actual mobile browsers.
+
+### 7. 🧼 Clean Production Interface
+- Developer actions and simulated skeleton loader triggers are strictly guarded with `kDebugMode`. Production builds remain pristine and free of developer artifacts.
 
 ---
 
@@ -78,8 +88,8 @@ Fin Sail is built around a single, uncompromising principle: **pure expense visi
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/fin-logs.git
-cd fin-logs
+git clone https://github.com/adimastra/fin-sail.git
+cd fin-sail
 
 # Fetch dependencies
 flutter pub get
@@ -102,6 +112,17 @@ The compiled bundle will be available in `build/web/`. You can serve it using an
 ```bash
 npx serve -s build/web -l 4500
 ```
+
+---
+
+## ☁️ Multi-Cloud Deployment (Vercel & GitHub Pages)
+
+Fin Sail features an automated GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) that triggers on every push to `main`:
+1. Executes static analysis (`flutter analyze`).
+2. Runs the 24 automated unit and widget tests (`flutter test`).
+3. Compiles the production web bundle with injected Supabase credentials.
+4. Deploys to **Vercel** with SPA rewrites via `vercel.json`.
+5. Concurrently deploys to **GitHub Pages**.
 
 ---
 
@@ -138,10 +159,10 @@ supabase functions deploy parse-receipt
 ```
 
 ### 3. Connect Client Credentials
-Configure your Supabase URL and Anon Key in `lib/config/supabase_config.dart` or pass them via `--dart-define` at runtime:
+Configure your Supabase URL and Anon Key via `--dart-define` at runtime:
 ```bash
 flutter run -d chrome \
-  --dart-define=SUPABASE_URL=https://xyzcompany.supabase.co \
+  --dart-define=SUPABASE_URL=https://xywhladlyekplqvpiozg.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=your-public-anon-key
 ```
 
@@ -153,7 +174,7 @@ flutter run -d chrome \
 # Analyze code for errors and lint rules
 flutter analyze
 
-# Run unit and widget test suite
+# Run unit and widget test suite (24 tests)
 flutter test
 ```
 

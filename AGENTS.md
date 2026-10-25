@@ -13,6 +13,7 @@ This document serves as the single source of truth for AI coding agents and huma
 2. **Frictionless Capture**: Users can log an expense in seconds via either the camera/file receipt scanner (OCR-powered) or the custom tactile numerical keypad.
 3. **Rich, Cohesive Aesthetics**: Dark mode by default with curated vibrant color palettes, glassmorphism, responsive micro-animations, and clean typography.
 4. **Resilient Offline/Demo Fallback**: Even without active Supabase credentials, the app operates seamlessly in **Local Demo Mode** with realistic seed data and OCR simulations.
+5. **Production Cleanliness**: Developer triggers (such as simulated skeleton reloads) are strictly isolated to debug mode (`kDebugMode`) and omitted from production releases.
 
 ---
 
@@ -22,9 +23,10 @@ This document serves as the single source of truth for AI coding agents and huma
 | :--- | :--- | :--- |
 | **Framework** | Flutter 3.47+ / Dart 3.x | Web-first with CanvasKit / HTML rendering |
 | **State Management** | `provider` (`ChangeNotifier`) | Central reactive store in `ExpenseProvider` |
+| **Hosting & CDN** | Vercel & GitHub Pages | Dual-cloud automated deployment via GitHub Actions CI/CD |
 | **Backend & Database** | Supabase (PostgreSQL) | Tables: `profiles`, `categories`, `transactions` |
 | **Security** | Row-Level Security (RLS) | Strictly isolated user data (`auth.uid() = user_id`) |
-| **Authentication** | Supabase Auth | Google SSO + Guest Demo mode (`AuthUser`) |
+| **Authentication** | Supabase Auth | Google SSO, Phone & Password (`auth.users`), and 1-tap Guest Demo |
 | **Storage** | Supabase Storage | `Receipts` bucket for receipt scans |
 | **AI / OCR** | Gemini 2.5 Flash Vision | Supabase Edge Function (`parse-receipt`) |
 | **Internationalization** | `intl` | Multi-currency formatting (IDR, USD, EUR, GBP) |
@@ -35,6 +37,9 @@ This document serves as the single source of truth for AI coding agents and huma
 
 ```text
 fin-logs/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml             # Automated multi-cloud CI/CD (Vercel + GitHub Pages)
 ├── lib/
 │   ├── config/
 │   │   ├── supabase_config.dart   # Backend URLs, keys, and Demo Mode detection
@@ -49,7 +54,7 @@ fin-logs/
 │   ├── screens/
 │   │   ├── dashboard_screen.dart          # Home screen with monthly curve & recent spend
 │   │   ├── keypad_expense_screen.dart     # Manual entry tactile keypad with inline delete
-│   │   ├── login_screen.dart              # Google SSO login & 1-tap Guest Demo access
+│   │   ├── login_screen.dart              # Phone/Password auth, Google SSO & Guest Demo
 │   │   ├── main_navigation_screen.dart    # Bottom nav (Analytics, Home, Settings) + FABs
 │   │   ├── manage_categories_screen.dart  # Custom category manager with color palette picker
 │   │   ├── receipt_scanner_modal.dart     # Live camera/file upload & laser scanner
@@ -75,8 +80,17 @@ fin-logs/
 │   │   └── parse-receipt/index.ts         # Edge Function using Gemini 2.5 Flash OCR
 │   └── migrations/
 │       └── 20261024000001_initial_schema.sql # Complete Postgres DDL, RLS & Storage setup
-└── test/
-    └── widget_test.dart                   # Smoke and widget tests
+├── test/
+│   ├── unit/
+│   │   ├── category_model_test.dart       # Signature color & icon tests
+│   │   ├── currency_format_test.dart      # Formatting precision tests
+│   │   ├── expense_provider_test.dart     # State management CRUD tests
+│   │   ├── phone_auth_test.dart           # Phone sign-up, login, and guard tests
+│   │   └── transaction_model_test.dart    # Transaction & Receipt parsing tests
+│   ├── flutter_test_config.dart           # Hermetic test configuration
+│   └── widget_test.dart                   # Smoke and widget tests
+├── vercel.json                            # Vercel SPA rewrites and clean URLs
+└── .vercelignore                          # Optimized build output filter
 ```
 
 ---
@@ -112,6 +126,9 @@ fin-logs/
    - In Flutter Web with CanvasKit, avoid wrapping opaque colored `Container`s directly around `InkWell` without a `Material` ancestor.
    - For custom interactive tiles or toggles, use either `Material(color: Colors.transparent, child: InkWell(...))` or `GestureDetector(behavior: HitTestBehavior.opaque, onTap: ...)`.
    - Never place decorative overlays (such as device mockups or camera cutouts) without `IgnorePointer`.
+4. **Developer Debug Tooling Rule**:
+   - Simulator actions, reload helpers, and "Test Skeleton" buttons **MUST** be conditionally rendered using `if (kDebugMode)`.
+   - In production builds (`kReleaseMode`), these elements are strictly omitted to maintain a clean interface.
 
 ---
 
@@ -123,18 +140,15 @@ Always run commands using the project's configured Flutter SDK (`$HOME/flutter/b
 # 1. Check for static analysis or lint issues
 $HOME/flutter/bin/flutter analyze
 
-# 2. Run unit and widget test suite
+# 2. Run unit and widget test suite (24 tests)
 $HOME/flutter/bin/flutter test
 
 # 3. Build release web bundle
 $HOME/flutter/bin/flutter build web --release
 
-# 4. Run local dev server for testing
-npx serve -s build/web -l 4500
+# 4. Deploy to Vercel production
+npx vercel deploy --prod --yes
 ```
-
-> [!IMPORTANT]
-> When testing in headless browsers (e.g. Playwright), Flutter Web compiles to canvas. Cache busting (e.g. `http://localhost:4500/?v=TIMESTAMP`) is recommended after rebuilding release assets.
 
 ---
 
@@ -144,6 +158,7 @@ npx serve -s build/web -l 4500
 - Never expose service role keys in client code (`supabase_config.dart`). Only the `anon` public key is permitted on the client.
 - The receipt storage bucket name is **`Receipts`**. Ensure proper storage policies exist before invoking uploads.
 - The edge function `parse-receipt` requires `GEMINI_API_KEY` configured in Supabase secrets for production deployments.
+- **Strict Auth Guarding**: Never allow unauthenticated users past `LoginScreen` on failed OAuth flows. The only way to access demo mode without credentials is via explicit `signInAsGuest()`.
 
 ---
 
@@ -164,7 +179,7 @@ Per `.agents/skills/plan-first/SKILL.md`:
 
 1. **Mandatory Unit Testing (`.agents/rules/mandatory-unit-tests.md`)**:
    - Every code update **MUST** include automated unit tests under `test/unit/`.
-   - Test execution (`flutter test`) must achieve 100% pass rate.
+   - Test execution (`flutter test`) must achieve 100% pass rate across all 24 unit & widget tests.
    - PRs and tasks without unit tests are strictly rejected.
 2. **Impact Mapping Maintenance (`IMPACT-MAPPING.md`)**:
    - Consult `IMPACT-MAPPING.md` before planning to assess blast radius.
@@ -173,4 +188,3 @@ Per `.agents/skills/plan-first/SKILL.md`:
      ```bash
      bash .agents/skills/impact-mapping/scripts/run_graphify.sh
      ```
-

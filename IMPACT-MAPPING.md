@@ -1,13 +1,13 @@
 # 🗺️ Fin Sail — Comprehensive Impact Mapping & Dependency Matrix
 
 > **Living Architecture Document**: Updated upon every realized application update per `.agents/skills/impact-mapping/SKILL.md`.  
-> **Last Updated**: 2026-10-25
+> **Last Updated**: 2026-10-25 (Multi-Cloud Deploy, Phone Auth & Production Cleanup)
 
 ---
 
 ## 📌 1. Visual Architecture & Dependency Graph
 
-The Mermaid graph below details how every layer of Fin Sail connects—from UI presentation down to Supabase storage, edge functions, and unit tests.
+The Mermaid graph below details how every layer of Fin Sail connects—from UI presentation down to Supabase storage, edge functions, multi-cloud hosting, and unit tests.
 
 ```mermaid
 graph TD
@@ -16,6 +16,11 @@ graph TD
     App --> Frame[ResponsiveMobileFrame]
     Frame --> Login[LoginScreen]
     Frame --> Nav[MainNavigationScreen]
+
+    %% Authentication Sub-flows
+    Login --> PhoneAuth[Phone & Password Register/Sign-In]
+    Login --> GoogleSSO[Google OAuth SSO]
+    Login --> GuestAccess[1-Tap Quick Demo Access]
 
     %% Navigation Tabs
     Nav --> TabHome[DashboardScreen]
@@ -50,7 +55,8 @@ graph TD
     ManageCat --> CreateCat[CreateCategorySheet]
 
     %% State Management
-    TabHome --> Provider[ExpenseProvider]
+    Login --> Provider[ExpenseProvider]
+    TabHome --> Provider
     TabAnalytics --> Provider
     TabSettings --> Provider
     KeypadModal --> Provider
@@ -67,7 +73,13 @@ graph TD
     SupabaseSvc --> DB_Tx[(public.transactions)]
     SupabaseSvc --> DB_Cat[(public.categories)]
     SupabaseSvc --> DB_Prof[(public.profiles)]
+    SupabaseSvc --> DB_Auth[(auth.users)]
     ScannerSvc --> Bucket_Receipts[(storage.Receipts)]
+
+    %% Hosting Targets
+    CI[GitHub Actions CI/CD] --> Vercel[Vercel Edge Global Network]
+    CI --> Pages[GitHub Pages CDN]
+    Vercel --> VercelConfig[vercel.json SPA Rewrites]
 
     %% Models
     Provider --> ModelTx[TransactionModel]
@@ -82,18 +94,23 @@ graph TD
     TestCurr[currency_format_test.dart] -.-> UtilCurr[CurrencyFormat]
     TestProv[expense_provider_test.dart] -.-> Provider
     TestProv -.-> MockData
+    TestPhone[phone_auth_test.dart] -.-> PhoneAuth
+    TestPhone -.-> Provider
+    TestPhone -.-> SupabaseSvc
 
     classDef screen fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#fff;
     classDef provider fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
     classDef model fill:#78350F,stroke:#F59E0B,stroke-width:2px,color:#fff;
     classDef backend fill:#831843,stroke:#EC4899,stroke-width:2px,color:#fff;
     classDef test fill:#14532D,stroke:#22C55E,stroke-width:2px,color:#fff;
+    classDef hosting fill:#1F2937,stroke:#0284C7,stroke-width:2px,color:#fff;
 
-    class TabHome,TabAnalytics,TabSettings,KeypadModal,ScannerModal,ReviewModal,ManageCat,DetailModal screen;
+    class TabHome,TabAnalytics,TabSettings,KeypadModal,ScannerModal,ReviewModal,ManageCat,DetailModal,Login screen;
     class Provider provider;
     class ModelTx,ModelCat,ModelReceipt,ModelUser model;
-    class DB_Tx,DB_Cat,DB_Prof,Bucket_Receipts,EdgeFunc,Gemini backend;
-    class TestCat,TestTx,TestCurr,TestProv test;
+    class DB_Tx,DB_Cat,DB_Prof,DB_Auth,Bucket_Receipts,EdgeFunc,Gemini backend;
+    class TestCat,TestTx,TestCurr,TestProv,TestPhone test;
+    class Vercel,Pages,VercelConfig,CI hosting;
 ```
 
 ---
@@ -104,28 +121,31 @@ When modifying any component, consult this table to assess which downstream depe
 
 | Component / Layer | File Path | Dependent UI / Logic | Impacted Backend / State | Unit Test Coverage |
 | :--- | :--- | :--- | :--- | :--- |
+| **`PhoneAuthModule`** | `lib/screens/login_screen.dart` | Register/Sign In mode switcher, phone & password fields | `SupabaseService.signUpWithPhone`, `ExpenseProvider` | `test/unit/phone_auth_test.dart` |
 | **`CategoryModel`** | `lib/models/category_model.dart` | Manage Categories, Overview Avatars, Analytics Filter Chips, Donut Slices, Keypad Pill, Review Chips, Detail Pill | `categories` table, `ExpenseProvider.categories` | `test/unit/category_model_test.dart` |
 | **`TransactionModel`** | `lib/models/transaction_model.dart` | Overview List, All Expense Stream, Detail Sheet, Review Scanned Expense | `transactions` table, `items (JSONB)` | `test/unit/transaction_model_test.dart` |
 | **`ReceiptData`** | `lib/models/receipt_data.dart` | `ReceiptScannerService`, `ReviewReceiptScreen` | Gemini Edge Function output, Storage `Receipts` | `test/unit/transaction_model_test.dart` |
-| **`ExpenseProvider`** | `lib/providers/expense_provider.dart` | All screens, modals, and FAB buttons | Local Demo Mock, Supabase PostgREST sync | `test/unit/expense_provider_test.dart` |
-| **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | Provider monthly spend & category map | `test/widget_test.dart` |
+| **`ExpenseProvider`** | `lib/providers/expense_provider.dart` | All screens, modals, and FAB buttons | Local Demo Mock, Supabase PostgREST sync, Phone Auth | `test/unit/expense_provider_test.dart`, `phone_auth_test.dart` |
+| **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | Provider monthly spend & category map, debug skeleton | `test/widget_test.dart` |
 | **`TransactionTile`** | `lib/widgets/transaction_tile.dart` | `DashboardScreen`, `TransactionsListScreen`, `MonthDetailsSheetModal` | Category color accents, receipt flags | `test/widget_test.dart` |
 | **`CurrencyFormat`** | `lib/utils/currency_format.dart` | All price displays, cards, keypad, and donut chart | `NumberFormat` localization | `test/unit/currency_format_test.dart` |
-| **`SupabaseService`** | `lib/services/supabase_service.dart` | `ExpenseProvider` | Supabase Client, Auth, Storage, RLS | Covered via mock provider tests |
+| **`SupabaseService`** | `lib/services/supabase_service.dart` | `ExpenseProvider` | Supabase Client, Auth (`auth.users`), Storage, RLS | `test/unit/phone_auth_test.dart` |
+| **`VercelConfig`** | `vercel.json` | Vercel Edge Hosting, clean URLs, SPA routing | Static delivery | Deployment pipeline check |
 
 ---
 
 ## 🧪 3. Unit Test Coverage Matrix
 
-Every module in Fin Sail is mapped to automated unit tests:
+Every module in Fin Sail is mapped to automated unit tests (**24 tests, 100% pass rate**):
 
 | Module / Area | Test File | Coverage Details | Verification Command |
 | :--- | :--- | :--- | :--- |
+| **Phone Auth & Session Guards** | `test/unit/phone_auth_test.dart` | Phone registration, phone sign-in, session reset on sign-out, guest demo login, strict auth guard | `flutter test test/unit/phone_auth_test.dart` |
 | **Categories** | `test/unit/category_model_test.dart` | 10 default categories, vibrant color defaults, hex parsing, color fallback, vector icon resolution, `toJson`/`fromJson` | `flutter test test/unit/category_model_test.dart` |
 | **Currencies & Formats** | `test/unit/currency_format_test.dart` | IDR (`Rp 1.152.000`), USD (`$1,152.00`), EUR, GBP, zero amounts, negative numbers | `flutter test test/unit/currency_format_test.dart` |
 | **Transactions & Receipts** | `test/unit/transaction_model_test.dart` | Expense transaction serialization, receipt flags, itemized line items list, confidence calculation | `flutter test test/unit/transaction_model_test.dart` |
 | **Expense State & Providers** | `test/unit/expense_provider_test.dart` | Mock data seeding, month-over-month trend % delta, add/edit/delete transactions, custom category creation & default protection | `flutter test test/unit/expense_provider_test.dart` |
-| **App Smoke Test** | `test/widget_test.dart` | Material app bootstrap & theme initialization | `flutter test test/widget_test.dart` |
+| **App Smoke Test** | `test/widget_test.dart` | Material app bootstrap, mobile frame wrapping & theme initialization | `flutter test test/widget_test.dart` |
 
 ---
 
