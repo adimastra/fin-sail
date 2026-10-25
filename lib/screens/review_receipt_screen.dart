@@ -7,6 +7,7 @@ import '../models/receipt_data.dart';
 import '../providers/expense_provider.dart';
 import '../utils/currency_format.dart';
 import '../utils/thousands_separator_formatter.dart';
+import '../widgets/animated_action_dialog.dart';
 
 class _ReceiptItemController {
   final TextEditingController nameController;
@@ -114,6 +115,8 @@ class _ReviewReceiptScreenState extends State<ReviewReceiptScreen> {
   }
 
   Future<void> _saveExpense() async {
+    if (_isSaving) return;
+
     final amount = ThousandsSeparatorInputFormatter.parse(_amountController.text);
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -123,54 +126,59 @@ class _ReviewReceiptScreenState extends State<ReviewReceiptScreen> {
     }
 
     setState(() => _isSaving = true);
-    final provider = context.read<ExpenseProvider>();
 
-    final itemsToSave = _itemControllers.isNotEmpty
-        ? _itemControllers
-        : [
-            _ReceiptItemController(
-              name: _merchantController.text.trim().isEmpty ? 'Item' : _merchantController.text.trim(),
-              price: amount,
-            ),
-          ];
+    try {
+      final provider = context.read<ExpenseProvider>();
+      final merchant = _merchantController.text.trim().isEmpty ? 'Expense' : _merchantController.text.trim();
 
-    final updatedItems = itemsToSave.map((c) {
-      final name = c.nameController.text.trim().isEmpty ? 'Item' : c.nameController.text.trim();
-      final price = ThousandsSeparatorInputFormatter.parse(c.priceController.text);
-      return ReceiptItem(name: name, price: price);
-    }).toList();
+      final itemsToSave = _itemControllers.isNotEmpty
+          ? _itemControllers
+          : [
+              _ReceiptItemController(
+                name: merchant,
+                price: amount,
+              ),
+            ];
 
-    final updatedReceipt = widget.receiptData.copyWith(
-      amount: amount,
-      merchant: _merchantController.text.trim(),
-      date: _selectedDate,
-      items: updatedItems,
-    );
+      final updatedItems = itemsToSave.map((c) {
+        final name = c.nameController.text.trim().isEmpty ? 'Item' : c.nameController.text.trim();
+        final price = ThousandsSeparatorInputFormatter.parse(c.priceController.text);
+        return ReceiptItem(name: name, price: price);
+      }).toList();
 
-    await provider.addNewTransaction(
-      amount: amount,
-      type: 'expense',
-      categoryId: _selectedCategoryId,
-      merchant: _merchantController.text.trim(),
-      date: _selectedDate,
-      receiptUrl: widget.receiptData.receiptUrl,
-      extractedData: updatedReceipt,
-    );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppTheme.income,
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle, color: Colors.white),
-              const SizedBox(width: 10),
-              Text('Expense of ${CurrencyFormat.format(amount)} saved successfully!'),
-            ],
-          ),
-        ),
+      final updatedReceipt = widget.receiptData.copyWith(
+        amount: amount,
+        merchant: merchant,
+        date: _selectedDate,
+        items: updatedItems,
       );
-      Navigator.of(context).pop();
+
+      await provider.addNewTransaction(
+        amount: amount,
+        type: 'expense',
+        categoryId: _selectedCategoryId,
+        merchant: merchant,
+        date: _selectedDate,
+        receiptUrl: widget.receiptData.receiptUrl,
+        extractedData: updatedReceipt,
+      );
+
+      if (mounted) {
+        await AnimatedSuccessDialog.show(
+          context,
+          title: 'Expense Added!',
+          subtitle: '${CurrencyFormat.format(amount)} • $merchant',
+          icon: Icons.receipt_long_rounded,
+          accentColor: const Color(0xFF10B981),
+        );
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }
+    } finally {
+      if (mounted && _isSaving) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 

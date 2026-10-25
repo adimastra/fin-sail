@@ -1,7 +1,7 @@
 # 🗺️ Fin Sail — Comprehensive Impact Mapping & Dependency Matrix
 
 > **Living Architecture Document**: Updated upon every realized application update per `.agents/skills/impact-mapping/SKILL.md`.  
-> **Last Updated**: 2026-10-25 (Multi-Cloud Deploy, Phone Auth & Production Cleanup)
+> **Last Updated**: 2026-10-25 (Action Confirmations, Animated Success Popups, Guards & Chart Animations)
 
 ---
 
@@ -52,6 +52,13 @@ graph TD
     TxTile --> DetailModal[TransactionDetailSheet]
     TabSettings --> ManageCat[ManageCategoriesScreen]
     ManageCat --> CreateCat[CreateCategorySheet]
+    KeypadModal --> SuccessDialog[AnimatedSuccessDialog]
+    ReviewModal --> SuccessDialog
+    DetailModal --> ConfirmDialog[ActionConfirmationDialog]
+    DetailModal --> SuccessDialog
+    ManageCat --> ConfirmDialog
+    ManageCat --> SuccessDialog
+    CreateCat --> SuccessDialog
 
     %% State Management
     Login --> Provider[ExpenseProvider]
@@ -97,6 +104,9 @@ graph TD
     TestAuth -.-> GuestAccess
     TestAuth -.-> Provider
     TestAuth -.-> SupabaseSvc
+    TestGuards[action_guards_and_animation_test.dart] -.-> ConfirmDialog
+    TestGuards -.-> SuccessDialog
+    TestGuards -.-> DonutPainter
 
     classDef screen fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#fff;
     classDef provider fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
@@ -105,11 +115,11 @@ graph TD
     classDef test fill:#14532D,stroke:#22C55E,stroke-width:2px,color:#fff;
     classDef hosting fill:#1F2937,stroke:#0284C7,stroke-width:2px,color:#fff;
 
-    class TabHome,TabAnalytics,TabSettings,KeypadModal,ScannerModal,ReviewModal,ManageCat,DetailModal,Login screen;
+    class TabHome,TabAnalytics,TabSettings,KeypadModal,ScannerModal,ReviewModal,ManageCat,DetailModal,Login,ConfirmDialog,SuccessDialog screen;
     class Provider provider;
     class ModelTx,ModelCat,ModelReceipt,ModelUser model;
     class DB_Tx,DB_Cat,DB_Prof,DB_Auth,Bucket_Receipts,EdgeFunc,Gemini backend;
-    class TestCat,TestTx,TestCurr,TestProv,TestAuth test;
+    class TestCat,TestTx,TestCurr,TestProv,TestAuth,TestGuards test;
     class Vercel,Pages,VercelConfig,CI hosting;
 ```
 
@@ -126,7 +136,8 @@ When modifying any component, consult this table to assess which downstream depe
 | **`TransactionModel`** | `lib/models/transaction_model.dart` | Overview List, All Expense Stream, Detail Sheet, Review Scanned Expense | `transactions` table, `items (JSONB)` | `test/unit/transaction_model_test.dart` |
 | **`ReceiptData`** | `lib/models/receipt_data.dart` | `ReceiptScannerService`, `ReviewReceiptScreen` | Gemini Edge Function output, Storage `Receipts` | `test/unit/transaction_model_test.dart` |
 | **`ExpenseProvider`** | `lib/providers/expense_provider.dart` | All screens, modals, and FAB buttons | Local Demo Mock, Supabase PostgREST sync, Phone Auth | `test/unit/expense_provider_test.dart`, `phone_auth_test.dart` |
-| **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | Provider monthly spend & category map, debug skeleton | `test/widget_test.dart` |
+| **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | On-load radial sweep & line score progress animation | `test/unit/action_guards_and_animation_test.dart`, `test/widget_test.dart` |
+| **`AnimatedActionDialog`** | `lib/widgets/animated_action_dialog.dart` | `TransactionDetailSheet`, `KeypadExpenseScreen`, `ReviewReceiptScreen`, `ManageCategoriesScreen` | Modal animations, popups, double-tap prevention guards | `test/unit/action_guards_and_animation_test.dart` |
 | **`TransactionTile`** | `lib/widgets/transaction_tile.dart` | `DashboardScreen`, `TransactionsListScreen`, `MonthDetailsSheetModal` | Category color accents, receipt flags | `test/widget_test.dart` |
 | **`CurrencyFormat`** | `lib/utils/currency_format.dart` | All price displays, cards, keypad, and donut chart | `NumberFormat` localization | `test/unit/currency_format_test.dart` |
 | **`SupabaseService`** | `lib/services/supabase_service.dart` | `ExpenseProvider` | Supabase Client, Auth (`auth.users`), Storage, RLS | `test/unit/phone_auth_test.dart` |
@@ -136,7 +147,7 @@ When modifying any component, consult this table to assess which downstream depe
 
 ## 🧪 3. Unit Test Coverage Matrix
 
-Every module in Fin Sail is mapped to automated unit tests (**24 tests, 100% pass rate**):
+Every module in Fin Sail is mapped to automated unit tests (**30 tests, 100% pass rate**):
 
 | Module / Area | Test File | Coverage Details | Verification Command |
 | :--- | :--- | :--- | :--- |

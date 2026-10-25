@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../config/theme.dart';
 import '../models/category_model.dart';
 import '../providers/expense_provider.dart';
+import '../widgets/animated_action_dialog.dart';
 
 class ManageCategoriesScreen extends StatefulWidget {
   const ManageCategoriesScreen({super.key});
@@ -13,6 +14,8 @@ class ManageCategoriesScreen extends StatefulWidget {
 }
 
 class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
+  bool _isDeleting = false;
+
   void _openCreateCategorySheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -22,75 +25,50 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
     );
   }
 
-  void _confirmDeleteCategory(CategoryModel category) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    showDialog(
-      context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: isDark ? const Color(0xFF18181B) : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Delete Category?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: isDark ? Colors.white : AppTheme.pureBlack,
-          ),
-        ),
-        content: Text(
-          'Are you sure you want to delete "${category.name}"? Only custom categories can be deleted.',
-          style: const TextStyle(
-            fontSize: 14,
-            color: AppTheme.grayTextMuted,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                color: isDark ? Colors.white70 : AppTheme.pureBlack,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              final provider = context.read<ExpenseProvider>();
-              final success = await provider.deleteCategory(category.id);
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Category "${category.name}" deleted'
-                          : 'Failed to delete category',
-                    ),
-                    behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            child: const Text(
-              'Delete',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _confirmDeleteCategory(CategoryModel category) async {
+    if (_isDeleting) return;
+
+    final confirmed = await ActionConfirmationDialog.show(
+      context,
+      title: 'Delete Category?',
+      message: 'Are you sure you want to delete "${category.name}"? Only custom categories can be deleted.',
+      confirmText: 'Delete Category',
+      cancelText: 'Cancel',
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
     );
+
+    if (!confirmed || !mounted) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      final provider = context.read<ExpenseProvider>();
+      final success = await provider.deleteCategory(category.id);
+
+      if (mounted) {
+        if (success) {
+          await AnimatedSuccessDialog.show(
+            context,
+            title: 'Category Deleted',
+            subtitle: '"${category.name}" was removed',
+            icon: Icons.delete_sweep_rounded,
+            accentColor: const Color(0xFFEF4444),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Failed to delete category'),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
+    } finally {
+      if (mounted && _isDeleting) {
+        setState(() => _isDeleting = false);
+      }
+    }
   }
 
   @override
@@ -468,7 +446,7 @@ class _ManageCategoriesScreenState extends State<ManageCategoriesScreen> {
                 color: Color(0xFFEF4444),
               ),
               tooltip: 'Delete custom category',
-              onPressed: onDelete,
+              onPressed: _isDeleting ? null : onDelete,
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
             ),
@@ -555,6 +533,8 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
       return;
     }
 
+    if (_isSubmitting) return;
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -571,12 +551,13 @@ class _CreateCategorySheetState extends State<_CreateCategorySheet> {
       setState(() => _isSubmitting = false);
       if (created != null) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Category "${created.name}" created successfully!'),
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 2),
-          ),
+        final color = Color(int.parse(_selectedColorHex.replaceFirst('#', '0xFF')));
+        await AnimatedSuccessDialog.show(
+          context,
+          title: 'Category Created!',
+          subtitle: '"${created.name}" is now ready to use',
+          icon: CategoryModel.getIconByName(_selectedIconKey) ?? Icons.check_circle_rounded,
+          accentColor: color,
         );
       } else {
         setState(() => _errorMessage = 'Failed to create category');

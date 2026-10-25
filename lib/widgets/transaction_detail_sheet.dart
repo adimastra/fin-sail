@@ -10,6 +10,7 @@ import '../providers/expense_provider.dart';
 import '../utils/currency_format.dart';
 import '../utils/thousands_separator_formatter.dart';
 import 'skeleton_loader.dart';
+import 'animated_action_dialog.dart';
 
 class _ExtractedItemController {
   final TextEditingController nameController;
@@ -163,6 +164,8 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
   }
 
   Future<void> _saveChanges() async {
+    if (_isSaving) return;
+
     final amount = ThousandsSeparatorInputFormatter.parse(_amountController.text.trim());
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -175,78 +178,89 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
         ? 'Expense'
         : _merchantController.text.trim();
 
+    // 1. In action edit expense, should display popup confirmation first
+    final confirmed = await ActionConfirmationDialog.show(
+      context,
+      title: 'Save Changes?',
+      message: 'Are you sure you want to update the details for "$merchant"?',
+      confirmText: 'Save Changes',
+      cancelText: 'Cancel',
+      confirmColor: AppTheme.seaBlue,
+      icon: Icons.edit_note_rounded,
+    );
+    if (!confirmed || !mounted) return;
+
     setState(() => _isSaving = true);
 
-    final provider = context.read<ExpenseProvider>();
-    final categories = provider.categories;
+    try {
+      final provider = context.read<ExpenseProvider>();
+      final categories = provider.categories;
 
-    final selectedCat = categories.firstWhere(
-      (c) => c.id == _selectedCategoryId,
-      orElse: () => _currentTx.category ?? categories.first,
-    );
+      final selectedCat = categories.firstWhere(
+        (c) => c.id == _selectedCategoryId,
+        orElse: () => _currentTx.category ?? categories.first,
+      );
 
-    ReceiptData? updatedExtracted;
-    if (_currentTx.extractedData != null) {
-      final itemsToSave = _extractedItemControllers.isNotEmpty
-          ? _extractedItemControllers
-          : [
-              _ExtractedItemController(
-                name: merchant.isNotEmpty ? merchant : 'Item',
-                price: amount,
-              ),
-            ];
+      ReceiptData? updatedExtracted;
+      if (_currentTx.extractedData != null) {
+        final itemsToSave = _extractedItemControllers.isNotEmpty
+            ? _extractedItemControllers
+            : [
+                _ExtractedItemController(
+                  name: merchant.isNotEmpty ? merchant : 'Item',
+                  price: amount,
+                ),
+              ];
 
-      final updatedItems = itemsToSave.map((c) {
-        final name = c.nameController.text.trim().isEmpty ? 'Item' : c.nameController.text.trim();
-        final price = ThousandsSeparatorInputFormatter.parse(c.priceController.text);
-        return ReceiptItem(name: name, price: price);
-      }).toList();
+        final updatedItems = itemsToSave.map((c) {
+          final name = c.nameController.text.trim().isEmpty ? 'Item' : c.nameController.text.trim();
+          final price = ThousandsSeparatorInputFormatter.parse(c.priceController.text);
+          return ReceiptItem(name: name, price: price);
+        }).toList();
 
-      updatedExtracted = _currentTx.extractedData!.copyWith(
-        items: updatedItems,
+        updatedExtracted = _currentTx.extractedData!.copyWith(
+          items: updatedItems,
+          amount: amount,
+          merchant: merchant,
+          date: _selectedDate,
+        );
+      }
+
+      final updatedTx = _currentTx.copyWith(
         amount: amount,
         merchant: merchant,
-        date: _selectedDate,
+        categoryId: selectedCat.id,
+        category: selectedCat,
+        transactionDate: _selectedDate,
+        extractedData: updatedExtracted,
       );
-    }
 
-    final updatedTx = _currentTx.copyWith(
-      amount: amount,
-      merchant: merchant,
-      categoryId: selectedCat.id,
-      category: selectedCat,
-      transactionDate: _selectedDate,
-      extractedData: updatedExtracted,
-    );
+      final saved = await provider.updateTransaction(updatedTx);
 
-    final saved = await provider.updateTransaction(updatedTx);
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+          if (saved != null) {
+            _currentTx = saved;
+            _isEditing = false;
+          }
+        });
 
-    if (mounted) {
-      setState(() {
-        _isSaving = false;
+        // 2. When successfully edit the expense, should display popup success with animation
         if (saved != null) {
-          _currentTx = saved;
-          _isEditing = false;
+          await AnimatedSuccessDialog.show(
+            context,
+            title: 'Expense Updated!',
+            subtitle: '${CurrencyFormat.format(amount)} • $merchant',
+            icon: Icons.check_circle_rounded,
+            accentColor: const Color(0xFF10B981),
+          );
         }
-      });
-
-      final isDark = Theme.of(context).brightness == Brightness.dark;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: isDark ? const Color(0xFF27272A) : AppTheme.pureBlack,
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.greenAccent, size: 18),
-              SizedBox(width: 8),
-              Text(
-                'Expense updated successfully',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-            ],
-          ),
-        ),
-      );
+      }
+    } finally {
+      if (mounted && _isSaving) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -584,9 +598,20 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
               ),
               icon: const Icon(Icons.delete_outline, size: 18),
               label: const Text('Delete Expense', style: TextStyle(fontWeight: FontWeight.w600)),
-              onPressed: () {
-                Navigator.of(context).pop();
-                widget.onDelete!();
+              onPressed: () async {
+                final confirmed = await ActionConfirmationDialog.show(
+                  context,
+                  title: 'Delete Expense?',
+                  message: 'Are you sure you want to permanently delete this expense? This action cannot be undone.',
+                  confirmText: 'Delete',
+                  cancelText: 'Cancel',
+                  isDestructive: true,
+                  icon: Icons.delete_outline_rounded,
+                );
+                if (confirmed == true && mounted) {
+                  Navigator.of(context).pop();
+                  widget.onDelete!();
+                }
               },
             ),
           ),

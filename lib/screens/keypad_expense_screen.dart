@@ -4,6 +4,7 @@ import '../config/theme.dart';
 import '../models/category_model.dart';
 import '../providers/expense_provider.dart';
 import '../utils/currency_format.dart';
+import '../widgets/animated_action_dialog.dart';
 
 class KeypadExpenseScreen extends StatefulWidget {
   const KeypadExpenseScreen({super.key});
@@ -27,6 +28,7 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
   late TextEditingController _storeNameController;
   late FocusNode _storeNameFocusNode;
   String? _selectedCategoryId;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -86,6 +88,8 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
   }
 
   Future<void> _submitExpense() async {
+    if (_isSubmitting) return;
+
     final amount = double.tryParse(_amountDigits);
     if (amount == null || amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -94,18 +98,37 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
       return;
     }
 
-    final provider = context.read<ExpenseProvider>();
-    final merchant = _storeNameController.text.trim().isEmpty ? 'Expense' : _storeNameController.text.trim();
+    setState(() => _isSubmitting = true);
 
-    await provider.addNewTransaction(
-      amount: amount,
-      merchant: merchant,
-      categoryId: _selectedCategoryId,
-      date: _selectedDate,
-    );
+    try {
+      final provider = context.read<ExpenseProvider>();
+      final merchant = _storeNameController.text.trim().isEmpty ? 'Expense' : _storeNameController.text.trim();
 
-    if (mounted) {
-      Navigator.of(context).pop();
+      await provider.addNewTransaction(
+        amount: amount,
+        merchant: merchant,
+        categoryId: _selectedCategoryId,
+        date: _selectedDate,
+      );
+
+      if (mounted) {
+        // Show celebratory animated success popup
+        await AnimatedSuccessDialog.show(
+          context,
+          title: 'Expense Added!',
+          subtitle: '${CurrencyFormat.format(amount)} • $merchant',
+          icon: Icons.check_circle_rounded,
+          accentColor: const Color(0xFF10B981),
+        );
+
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+      }
+    } finally {
+      if (mounted && _isSubmitting) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -531,9 +554,21 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
                     foregroundColor: isDark ? AppTheme.pureBlack : Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  icon: const Icon(Icons.check, size: 20),
-                  label: const Text('Save Expense', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: _submitExpense,
+                  icon: _isSubmitting
+                      ? SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            color: isDark ? AppTheme.pureBlack : Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Icon(Icons.check, size: 20),
+                  label: Text(
+                    _isSubmitting ? 'Saving...' : 'Save Expense',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  onPressed: _isSubmitting ? null : _submitExpense,
                 ),
               ),
             ),
@@ -573,11 +608,20 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
           },
           child: Center(
             child: isSubmit
-                ? Icon(
-                    Icons.check,
-                    color: isDark ? AppTheme.pureBlack : Colors.white,
-                    size: 26,
-                  )
+                ? (_isSubmitting
+                    ? SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          color: isDark ? AppTheme.pureBlack : Colors.white,
+                          strokeWidth: 2.2,
+                        ),
+                      )
+                    : Icon(
+                        Icons.check,
+                        color: isDark ? AppTheme.pureBlack : Colors.white,
+                        size: 26,
+                      ))
                 : Text(
                     key,
                     style: TextStyle(

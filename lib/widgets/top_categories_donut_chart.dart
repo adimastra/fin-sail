@@ -31,7 +31,7 @@ class CategorySpendingItem {
   });
 }
 
-class TopCategoriesDonutChart extends StatelessWidget {
+class TopCategoriesDonutChart extends StatefulWidget {
   final List<TransactionModel> allTransactions;
   final DateTime selectedMonth;
   final ValueChanged<DateTime> onMonthChanged;
@@ -45,13 +45,50 @@ class TopCategoriesDonutChart extends StatelessWidget {
     this.tabToggle,
   });
 
+  @override
+  State<TopCategoriesDonutChart> createState() => _TopCategoriesDonutChartState();
+}
+
+class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _animation = CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeOutCubic,
+    );
+    _animationController.forward();
+  }
+
+  @override
+  void didUpdateWidget(covariant TopCategoriesDonutChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedMonth != widget.selectedMonth ||
+        oldWidget.allTransactions.length != widget.allTransactions.length) {
+      _animationController.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
 
   void _showMonthDetailsSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => MonthDetailsSheetModal(selectedMonth: selectedMonth),
+      builder: (ctx) => MonthDetailsSheetModal(selectedMonth: widget.selectedMonth),
     );
   }
 
@@ -61,7 +98,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => MonthDetailsSheetModal(
-        selectedMonth: selectedMonth,
+        selectedMonth: widget.selectedMonth,
         categoryFilter: categoryName,
       ),
     );
@@ -69,7 +106,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
 
   void _showMonthYearPicker(BuildContext context) {
     final now = DateTime.now();
-    int currentSelectedYear = selectedMonth.year;
+    int currentSelectedYear = widget.selectedMonth.year;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     showModalBottomSheet(
@@ -154,14 +191,14 @@ class TopCategoriesDonutChart extends StatelessWidget {
                     final monthNum = index + 1;
                     final isFuture = isCurrentYear && monthNum > now.month;
                     final isSelected =
-                        currentSelectedYear == selectedMonth.year &&
-                        monthNum == selectedMonth.month;
+                        currentSelectedYear == widget.selectedMonth.year &&
+                        monthNum == widget.selectedMonth.month;
 
                     return InkWell(
                       onTap: isFuture
                           ? null
                           : () {
-                              onMonthChanged(
+                              widget.onMonthChanged(
                                 DateTime(currentSelectedYear, monthNum),
                               );
                               Navigator.of(ctx).pop();
@@ -212,10 +249,10 @@ class TopCategoriesDonutChart extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Filter transactions strictly for the selected month
-    final monthlyTxs = allTransactions.where((t) {
+    final monthlyTxs = widget.allTransactions.where((t) {
       return t.isExpense &&
-          t.transactionDate.year == selectedMonth.year &&
-          t.transactionDate.month == selectedMonth.month;
+          t.transactionDate.year == widget.selectedMonth.year &&
+          t.transactionDate.month == widget.selectedMonth.month;
     }).toList();
 
     final double totalMonthSpend = monthlyTxs.fold(
@@ -302,7 +339,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      monthFormatter.format(selectedMonth),
+                      monthFormatter.format(widget.selectedMonth),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -321,7 +358,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
             ),
 
             // Tab menu toggle (All Expense Transaction, Chart by categories)
-            ?tabToggle,
+            ?widget.tabToggle,
           ],
         ),
         const SizedBox(height: 16),
@@ -335,13 +372,19 @@ class TopCategoriesDonutChart extends StatelessWidget {
               clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
-                CustomPaint(
-                  size: const Size(220, 220),
-                  painter: _DonutChartPainter(
-                    items: items,
-                    total: totalMonthSpend,
-                    isDark: isDark,
-                  ),
+                AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, child) {
+                    return CustomPaint(
+                      size: const Size(220, 220),
+                      painter: _DonutChartPainter(
+                        items: items,
+                        total: totalMonthSpend,
+                        isDark: isDark,
+                        animationProgress: _animation.value,
+                      ),
+                    );
+                  },
                 ),
                 // Center text: "Total Expenses" & formatted amount (Tap to view all monthly transactions)
                 GestureDetector(
@@ -400,7 +443,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 30),
             child: Center(
               child: Text(
-                'No expenses logged for ${monthFormatter.format(selectedMonth)}',
+                'No expenses logged for ${monthFormatter.format(widget.selectedMonth)}',
                 style: const TextStyle(
                   color: AppTheme.grayTextMuted,
                   fontSize: 14,
@@ -412,7 +455,7 @@ class TopCategoriesDonutChart extends StatelessWidget {
           ...items.map((item) {
             final diffPct = provider.getCategoryChangeVsLastMonth(
               item.name,
-              selectedMonth,
+              widget.selectedMonth,
             );
             return _buildCategoryCard(
               context,
@@ -543,15 +586,22 @@ class TopCategoriesDonutChart extends StatelessWidget {
                             ? const Color(0xFF27272A)
                             : const Color(0xFFF1F1F4),
                       ),
-                      FractionallySizedBox(
-                        widthFactor: item.percentage.clamp(0.0, 1.0),
-                        child: Container(
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: item.color,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
+                      AnimatedBuilder(
+                        animation: _animation,
+                        builder: (context, child) {
+                          final animatedFactor =
+                              (item.percentage.clamp(0.0, 1.0) * _animation.value).clamp(0.0, 1.0);
+                          return FractionallySizedBox(
+                            widthFactor: animatedFactor,
+                            child: Container(
+                              height: 5,
+                              decoration: BoxDecoration(
+                                color: item.color,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -640,11 +690,13 @@ class _DonutChartPainter extends CustomPainter {
   final List<CategorySpendingItem> items;
   final double total;
   final bool isDark;
+  final double animationProgress;
 
   _DonutChartPainter({
     required this.items,
     required this.total,
     required this.isDark,
+    this.animationProgress = 1.0,
   });
 
   @override
@@ -673,7 +725,7 @@ class _DonutChartPainter extends CustomPainter {
       final totalAngle = item.percentage * 2 * pi;
       if (totalAngle <= 0.01) continue;
 
-      final drawnSweep = max(totalAngle - 2 * capAngle - gapAngle, 0.02);
+      final drawnSweep = max(totalAngle - 2 * capAngle - gapAngle, 0.02) * animationProgress;
       final drawnStart = startAngle + capAngle + (gapAngle / 2);
 
       final paint = Paint()
@@ -698,7 +750,8 @@ class _DonutChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
     return oldDelegate.total != total ||
         oldDelegate.items.length != items.length ||
-        oldDelegate.isDark != isDark;
+        oldDelegate.isDark != isDark ||
+        oldDelegate.animationProgress != animationProgress;
   }
 }
 

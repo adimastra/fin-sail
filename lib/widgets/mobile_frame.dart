@@ -26,7 +26,7 @@ class _ResponsiveMobileFrameState extends State<ResponsiveMobileFrame> {
 
         // On desktop/tablet, center the mobile screen within a sleek phone canvas
         return Scaffold(
-          backgroundColor: const Color(0xFF060910),
+          backgroundColor: const Color(0xFF121215),
           body: Stack(
             children: [
               // Ambient background glow
@@ -37,8 +37,8 @@ class _ResponsiveMobileFrameState extends State<ResponsiveMobileFrame> {
                       center: Alignment(0, -0.3),
                       radius: 1.2,
                       colors: [
-                        Color(0xFF1E1B4B), // Indigo deep glow
-                        Color(0xFF090D16),
+                        Color(0xFF1E1E24), // Neutral dark grey glow
+                        Color(0xFF121215), // Deep dark grey background
                       ],
                     ),
                   ),
@@ -54,10 +54,10 @@ class _ResponsiveMobileFrameState extends State<ResponsiveMobileFrame> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.35),
+                    color: const Color(0xFF18181C).withOpacity(0.9),
                     border: Border(
                       bottom: BorderSide(
-                        color: Colors.white.withOpacity(0.08),
+                        color: const Color(0xFF27272A),
                         width: 1,
                       ),
                     ),
@@ -177,7 +177,7 @@ class _ResponsiveMobileFrameState extends State<ResponsiveMobileFrame> {
                       color: AppTheme.darkBackground,
                       borderRadius: BorderRadius.circular(44),
                       border: Border.all(
-                        color: const Color(0xFF2C374D),
+                        color: const Color(0xFF27272A),
                         width: 8,
                       ),
                       boxShadow: [
