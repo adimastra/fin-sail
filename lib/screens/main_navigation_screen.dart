@@ -30,7 +30,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     // 1: Home Page Overview (Middle, Default)
     // 2: Settings (Right)
     final screens = [
-      const TransactionsListScreen(),
+      TransactionsListScreen(key: ValueKey('TransactionsListScreen-$_currentIndex')),
       DashboardScreen(onNavigateTab: _onTabTapped),
       const SettingsScreen(),
     ];

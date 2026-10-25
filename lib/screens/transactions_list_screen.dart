@@ -22,6 +22,7 @@ class TransactionsListScreen extends StatefulWidget {
 class _TransactionsListScreenState extends State<TransactionsListScreen> {
   // 2-tab menu: 0: All Expense Transaction, 1: Chart by categories
   int _selectedSubTab = 1;
+  int _chartAnimNonce = 0;
   String _searchQuery = '';
   bool _onlyWithReceipts = false;
   String? _selectedCategoryFilter;
@@ -122,9 +123,10 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
           GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () {
-              if (_selectedSubTab != 1) {
-                setState(() => _selectedSubTab = 1);
-              }
+              setState(() {
+                _selectedSubTab = 1;
+                _chartAnimNonce++;
+              });
             },
             child: Tooltip(
               message: 'Chart by categories',
@@ -556,13 +558,16 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                 )
                 // Tab 1: Chart by categories (Matching user's reference design)
               : SingleChildScrollView(
-                  key: ValueKey('ChartByCategoriesTab-$_selectedSubTab-${_chartMonth.month}-${_chartMonth.year}'),
+                  key: ValueKey('ChartByCategoriesTab-$_selectedSubTab-$_chartAnimNonce-${_chartMonth.month}-${_chartMonth.year}'),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                   child: TopCategoriesDonutChart(
-                    key: ValueKey('TopCategoriesDonutChart-$_selectedSubTab-${_chartMonth.month}-${_chartMonth.year}'),
+                    key: ValueKey('TopCategoriesDonutChart-$_selectedSubTab-$_chartAnimNonce-${_chartMonth.month}-${_chartMonth.year}'),
                     allTransactions: allExpenses,
                     selectedMonth: _chartMonth,
-                    onMonthChanged: (m) => setState(() => _chartMonth = m),
+                    onMonthChanged: (m) => setState(() {
+                      _chartMonth = m;
+                      _chartAnimNonce++;
+                    }),
                     tabToggle: _buildTopTabToggle(isDark),
                   ),
                 )),

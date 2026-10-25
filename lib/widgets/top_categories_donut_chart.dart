@@ -65,7 +65,10 @@ class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
       parent: _animationController,
       curve: Curves.easeOutCubic,
     );
-    _animationController.forward();
+    _animationController.addListener(() {
+      if (mounted) setState(() {});
+    });
+    _animationController.forward(from: 0.0);
   }
 
   @override
@@ -365,17 +368,18 @@ class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
 
         // Donut Chart with Center "Total Expenses" and Rounded Segments
         Center(
-          child: SizedBox(
-            height: 220,
-            width: 220,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    return CustomPaint(
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.88, end: 1.0).animate(_animation),
+            child: FadeTransition(
+              opacity: Tween<double>(begin: 0.35, end: 1.0).animate(_animation),
+              child: SizedBox(
+                height: 220,
+                width: 220,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    CustomPaint(
                       size: const Size(220, 220),
                       painter: _DonutChartPainter(
                         items: items,
@@ -383,9 +387,7 @@ class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
                         isDark: isDark,
                         animationProgress: _animation.value,
                       ),
-                    );
-                  },
-                ),
+                    ),
                 // Center text: "Total Expenses" & formatted amount (Tap to view all monthly transactions)
                 GestureDetector(
                   onTap: () => _showMonthDetailsSheet(context),
@@ -423,6 +425,8 @@ class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
             ),
           ),
         ),
+      ),
+    ),
         const SizedBox(height: 28),
 
         // Header: "All Expenses"
@@ -577,33 +581,34 @@ class _TopCategoriesDonutChartState extends State<TopCategoriesDonutChart>
                 // Horizontal Progress Bar matching the category segment color
                 ClipRRect(
                   borderRadius: BorderRadius.circular(4),
-                  child: Stack(
-                    children: [
-                      Container(
-                        height: 5,
-                        width: double.infinity,
-                        color: isDark
-                            ? const Color(0xFF27272A)
-                            : const Color(0xFFF1F1F4),
-                      ),
-                      AnimatedBuilder(
-                        animation: _animation,
-                        builder: (context, child) {
-                          final animatedFactor =
-                              (item.percentage.clamp(0.0, 1.0) * _animation.value).clamp(0.0, 1.0);
-                          return FractionallySizedBox(
-                            widthFactor: animatedFactor,
-                            child: Container(
-                              height: 5,
-                              decoration: BoxDecoration(
-                                color: item.color,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final totalBarWidth = constraints.maxWidth;
+                      final currentBarWidth = (totalBarWidth *
+                              item.percentage.clamp(0.0, 1.0) *
+                              _animation.value)
+                          .clamp(0.0, totalBarWidth);
+
+                      return Stack(
+                        children: [
+                          Container(
+                            height: 5,
+                            width: double.infinity,
+                            color: isDark
+                                ? const Color(0xFF27272A)
+                                : const Color(0xFFF1F1F4),
+                          ),
+                          Container(
+                            height: 5,
+                            width: currentBarWidth,
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              borderRadius: BorderRadius.circular(4),
                             ),
-                          );
-                        },
-                      ),
-                    ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -716,7 +721,14 @@ class _DonutChartPainter extends CustomPainter {
       return;
     }
 
-    double startAngle = -pi / 2;
+    // Always draw subtle background track
+    canvas.drawCircle(center, radius, basePaint);
+
+    if (animationProgress <= 0.001) return;
+
+    final maxSweepAngle = animationProgress * 2 * pi;
+    double currentArcStart = -pi / 2;
+    double accumulatedAngle = 0.0;
     final capAngle = (strokeWidth / 2) / radius;
     const gapAngle = 0.08;
 
@@ -725,24 +737,40 @@ class _DonutChartPainter extends CustomPainter {
       final totalAngle = item.percentage * 2 * pi;
       if (totalAngle <= 0.01) continue;
 
-      final drawnSweep = max(totalAngle - 2 * capAngle - gapAngle, 0.02) * animationProgress;
-      final drawnStart = startAngle + capAngle + (gapAngle / 2);
+      final categoryStartAngle = currentArcStart;
 
-      final paint = Paint()
-        ..color = item.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
+      // Check how much of this category's angle has been covered by radial sweep
+      if (maxSweepAngle <= accumulatedAngle) {
+        // Not reached yet
+        currentArcStart += totalAngle;
+        accumulatedAngle += totalAngle;
+        continue;
+      }
 
-      canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        drawnStart,
-        drawnSweep,
-        false,
-        paint,
-      );
+      final availableAngle = maxSweepAngle - accumulatedAngle;
+      final sweepForCategory = min(availableAngle, totalAngle);
+      final drawnSweep = max(sweepForCategory - 2 * capAngle - gapAngle, 0.0);
 
-      startAngle += totalAngle;
+      if (drawnSweep > 0.005) {
+        final drawnStart = categoryStartAngle + capAngle + (gapAngle / 2);
+
+        final paint = Paint()
+          ..color = item.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
+
+        canvas.drawArc(
+          Rect.fromCircle(center: center, radius: radius),
+          drawnStart,
+          drawnSweep,
+          false,
+          paint,
+        );
+      }
+
+      currentArcStart += totalAngle;
+      accumulatedAngle += totalAngle;
     }
   }
 
