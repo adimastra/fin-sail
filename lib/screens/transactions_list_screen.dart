@@ -246,11 +246,8 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
       ),
       body: provider.isLoading
           ? AnalyticsSkeleton(selectedTab: _selectedSubTab)
-          : IndexedStack(
-              index: _selectedSubTab,
-              children: [
-                // Tab 0: All Expense Transaction
-                SingleChildScrollView(
+          : (_selectedSubTab == 0
+              ? SingleChildScrollView(
                   key: const ValueKey('AllExpenseTransactionTab'),
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
                   child: Column(
@@ -556,21 +553,19 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
                         }),
                     ],
                   ),
-                ),
-
+                )
                 // Tab 1: Chart by categories (Matching user's reference design)
-                SingleChildScrollView(
-                  key: const ValueKey('ChartByCategoriesTab'),
+              : SingleChildScrollView(
+                  key: ValueKey('ChartByCategoriesTab-$_selectedSubTab-${_chartMonth.month}-${_chartMonth.year}'),
                   padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
                   child: TopCategoriesDonutChart(
+                    key: ValueKey('TopCategoriesDonutChart-$_selectedSubTab-${_chartMonth.month}-${_chartMonth.year}'),
                     allTransactions: allExpenses,
                     selectedMonth: _chartMonth,
                     onMonthChanged: (m) => setState(() => _chartMonth = m),
                     tabToggle: _buildTopTabToggle(isDark),
                   ),
-                ),
-              ],
-            ),
+                )),
     );
   }
 

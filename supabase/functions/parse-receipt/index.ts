@@ -1,6 +1,4 @@
 // Follow Deno and Supabase Edge Function conventions
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -26,7 +24,7 @@ interface ParsedReceiptResponse {
   raw_summary?: string;
 }
 
-serve(async (req) => {
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -56,9 +54,9 @@ Output ONLY valid JSON matching this exact structure:
 {
   "merchant": "Store or merchant name",
   "amount": 0.00,
-  "currency": "USD" or detected 3-letter currency,
+  "currency": "IDR" or "USD" or detected 3-letter currency code,
   "date": "YYYY-MM-DD",
-  "suggested_category": "Food & Dining" | "Groceries" | "Transportation" | "Shopping & Retail" | "Housing & Rent" | "Bills & Utilities" | "Entertainment" | "Health & Medical" | "Travel & Hotel" | "Other Expense",
+  "suggested_category": "coffee" | "groceries" | "food & snacks" | "commute" | "shopping" | "house repair" | "bills & utilities" | "health" | "pet care" | "other",
   "payment_method": "card" | "cash" | "transfer" | "other",
   "tax_amount": 0.00,
   "items": [{"name": "item description", "price": 0.00}],
@@ -99,24 +97,33 @@ Output ONLY valid JSON matching this exact structure:
 
       const geminiJson = await geminiResponse.json();
       const content = geminiJson.candidates?.[0]?.content?.parts?.[0]?.text;
-      parsedResult = JSON.parse(content);
+      
+      let cleanContent = (content || "{}").trim();
+      if (cleanContent.startsWith("```json")) {
+        cleanContent = cleanContent.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+      } else if (cleanContent.startsWith("```")) {
+        cleanContent = cleanContent.replace(/^```\s*/, "").replace(/\s*```$/, "");
+      }
+
+      parsedResult = JSON.parse(cleanContent);
     } else {
       // High-quality smart demo fallback parser for testing without API keys
       parsedResult = {
-        merchant: "Supermarket & Market Mart",
-        amount: 38.75,
-        currency: "USD",
+        merchant: "Grand Lucky Superstore",
+        amount: 145000,
+        currency: "IDR",
         date: new Date().toISOString().split("T")[0],
-        suggested_category: "Groceries",
+        suggested_category: "groceries",
         payment_method: "card",
-        tax_amount: 2.85,
+        tax_amount: 14500,
         items: [
-          { name: "Fresh Produce & Organic Fruits", price: 14.50 },
-          { name: "Whole Grain Bread & Bakery", price: 6.25 },
-          { name: "Beverages & Cold Brew", price: 15.15 },
+          { name: "Fresh Milk 1L", price: 24500 },
+          { name: "Organic Fuji Apples", price: 48000 },
+          { name: "Whole Grain Sourdough", price: 32500 },
+          { name: "Premium Jasmine Rice 2.5kg", price: 40000 },
         ],
-        confidence_score: 0.94,
-        raw_summary: "Scanned receipt automatically processed with high confidence.",
+        confidence_score: 0.96,
+        raw_summary: "Electronic receipt parsed with 4 matched grocery items.",
       };
     }
 

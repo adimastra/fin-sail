@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fin_logs/providers/expense_provider.dart';
@@ -71,62 +72,83 @@ void main() {
       const double categoryPercentage = 0.42; // 42%
 
       // Progress at 0%
-      final factorAtZero = (categoryPercentage.clamp(0.0, 1.0) * 0.0).clamp(0.0, 1.0);
+      final factorAtZero = (categoryPercentage.clamp(0.0, 1.0) * 0.0).clamp(
+        0.0,
+        1.0,
+      );
       expect(factorAtZero, 0.0);
 
       // Progress at 50%
-      final factorAtHalf = (categoryPercentage.clamp(0.0, 1.0) * 0.5).clamp(0.0, 1.0);
+      final factorAtHalf = (categoryPercentage.clamp(0.0, 1.0) * 0.5).clamp(
+        0.0,
+        1.0,
+      );
       expect(factorAtHalf, closeTo(0.21, 0.0001));
 
       // Progress at 100%
-      final factorAtFull = (categoryPercentage.clamp(0.0, 1.0) * 1.0).clamp(0.0, 1.0);
+      final factorAtFull = (categoryPercentage.clamp(0.0, 1.0) * 1.0).clamp(
+        0.0,
+        1.0,
+      );
       expect(factorAtFull, closeTo(0.42, 0.0001));
     });
 
-    test('Expense update preserves data integrity and updates provider state', () async {
-      expect(provider.transactions.isNotEmpty, isTrue);
-      final originalTx = provider.transactions.first;
+    test(
+      'Expense update preserves data integrity and updates provider state',
+      () async {
+        expect(provider.transactions.isNotEmpty, isTrue);
+        final originalTx = provider.transactions.first;
 
-      final updatedTx = originalTx.copyWith(
-        merchant: 'Edited Merchant Supermarket',
-        amount: 88000.0,
-      );
+        final updatedTx = originalTx.copyWith(
+          merchant: 'Edited Merchant Supermarket',
+          amount: 88000.0,
+        );
 
-      final result = await provider.updateTransaction(updatedTx);
-      expect(result, isNotNull);
-      expect(result!.merchant, 'Edited Merchant Supermarket');
-      expect(result.amount, 88000.0);
+        final result = await provider.updateTransaction(updatedTx);
+        expect(result, isNotNull);
+        expect(result!.merchant, 'Edited Merchant Supermarket');
+        expect(result.amount, 88000.0);
 
-      // Verify in memory store
-      final found = provider.transactions.firstWhere((t) => t.id == originalTx.id);
-      expect(found.merchant, 'Edited Merchant Supermarket');
-      expect(found.amount, 88000.0);
-    });
+        // Verify in memory store
+        final found = provider.transactions.firstWhere(
+          (t) => t.id == originalTx.id,
+        );
+        expect(found.merchant, 'Edited Merchant Supermarket');
+        expect(found.amount, 88000.0);
+      },
+    );
 
-    test('Category add and delete operations execute safely with provider guards', () async {
-      final initialCount = provider.categories.length;
+    test(
+      'Category add and delete operations execute safely with provider guards',
+      () async {
+        final initialCount = provider.categories.length;
 
-      // Add custom category
-      final custom = await provider.addCategory(
-        name: 'Gamer Gear',
-        emoji: '🎮',
-        iconName: 'sports_esports_rounded',
-        colorHex: '#8B5CF6',
-      );
+        // Add custom category
+        final custom = await provider.addCategory(
+          name: 'Gamer Gear',
+          emoji: '🎮',
+          iconName: 'sports_esports_rounded',
+          colorHex: '#8B5CF6',
+        );
 
-      expect(custom, isNotNull);
-      expect(custom!.name.toLowerCase(), 'gamer gear');
-      expect(provider.categories.length, initialCount + 1);
+        expect(custom, isNotNull);
+        expect(custom!.name.toLowerCase(), 'gamer gear');
+        expect(provider.categories.length, initialCount + 1);
 
-      // Delete custom category
-      final deleted = await provider.deleteCategory(custom.id);
-      expect(deleted, isTrue);
-      expect(provider.categories.length, initialCount);
+        // Delete custom category
+        final deleted = await provider.deleteCategory(custom.id);
+        expect(deleted, isTrue);
+        expect(provider.categories.length, initialCount);
 
-      // Guard: Cannot delete system default categories
-      final defaultCat = provider.categories.firstWhere((c) => !c.id.startsWith('custom-'));
-      final deleteDefaultResult = await provider.deleteCategory(defaultCat.id);
-      expect(deleteDefaultResult, isFalse);
-    });
+        // Guard: Cannot delete system default categories
+        final defaultCat = provider.categories.firstWhere(
+          (c) => !c.id.startsWith('custom-'),
+        );
+        final deleteDefaultResult = await provider.deleteCategory(
+          defaultCat.id,
+        );
+        expect(deleteDefaultResult, isFalse);
+      },
+    );
   });
 }

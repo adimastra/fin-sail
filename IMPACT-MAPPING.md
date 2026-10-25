@@ -1,7 +1,7 @@
 # 🗺️ Fin Sail — Comprehensive Impact Mapping & Dependency Matrix
 
 > **Living Architecture Document**: Updated upon every realized application update per `.agents/skills/impact-mapping/SKILL.md`.  
-> **Last Updated**: 2026-10-25 (Action Confirmations, Animated Success Popups, Guards & Chart Animations)
+> **Last Updated**: 2026-10-25 (Gemini Edge Function Active & On-Load Chart Animations Fixed)
 
 ---
 
@@ -135,6 +135,7 @@ When modifying any component, consult this table to assess which downstream depe
 | **`CategoryModel`** | `lib/models/category_model.dart` | Manage Categories, Overview Avatars, Analytics Filter Chips, Donut Slices, Keypad Pill, Review Chips, Detail Pill | `categories` table, `ExpenseProvider.categories` | `test/unit/category_model_test.dart` |
 | **`TransactionModel`** | `lib/models/transaction_model.dart` | Overview List, All Expense Stream, Detail Sheet, Review Scanned Expense | `transactions` table, `items (JSONB)` | `test/unit/transaction_model_test.dart` |
 | **`ReceiptData`** | `lib/models/receipt_data.dart` | `ReceiptScannerService`, `ReviewReceiptScreen` | Gemini Edge Function output, Storage `Receipts` | `test/unit/transaction_model_test.dart` |
+| **`parse-receipt` Edge Function** | `supabase/functions/parse-receipt/index.ts` | `ReceiptScannerService`, `ReceiptScannerModal` | Gemini 2.5 Flash Vision OCR, Supabase Edge Runtime | Live curl verification, `test/unit/transaction_model_test.dart` |
 | **`ExpenseProvider`** | `lib/providers/expense_provider.dart` | All screens, modals, and FAB buttons | Local Demo Mock, Supabase PostgREST sync, Phone Auth | `test/unit/expense_provider_test.dart`, `phone_auth_test.dart` |
 | **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | On-load radial sweep & line score progress animation | `test/unit/action_guards_and_animation_test.dart`, `test/widget_test.dart` |
 | **`AnimatedActionDialog`** | `lib/widgets/animated_action_dialog.dart` | `TransactionDetailSheet`, `KeypadExpenseScreen`, `ReviewReceiptScreen`, `ManageCategoriesScreen` | Modal animations, popups, double-tap prevention guards | `test/unit/action_guards_and_animation_test.dart` |

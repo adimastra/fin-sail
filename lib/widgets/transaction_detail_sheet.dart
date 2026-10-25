@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../config/theme.dart';
 import '../models/receipt_data.dart';
 import '../models/transaction_model.dart';
@@ -17,10 +18,10 @@ class _ExtractedItemController {
   final TextEditingController priceController;
 
   _ExtractedItemController({required String name, required num price})
-      : nameController = TextEditingController(text: name),
-        priceController = TextEditingController(
-          text: ThousandsSeparatorInputFormatter.format(price),
-        );
+    : nameController = TextEditingController(text: name),
+      priceController = TextEditingController(
+        text: ThousandsSeparatorInputFormatter.format(price),
+      );
 
   void dispose() {
     nameController.dispose();
@@ -103,7 +104,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
     _amountController = TextEditingController(
       text: ThousandsSeparatorInputFormatter.format(amt),
     );
-    _merchantController = TextEditingController(text: _currentTx.merchant ?? '');
+    _merchantController = TextEditingController(
+      text: _currentTx.merchant ?? '',
+    );
     _selectedCategoryId = _currentTx.categoryId ?? _currentTx.category?.id;
     _selectedDate = _currentTx.transactionDate;
 
@@ -166,7 +169,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
   Future<void> _saveChanges() async {
     if (_isSaving) return;
 
-    final amount = ThousandsSeparatorInputFormatter.parse(_amountController.text.trim());
+    final amount = ThousandsSeparatorInputFormatter.parse(
+      _amountController.text.trim(),
+    );
     if (amount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a valid amount')),
@@ -183,7 +188,7 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
       context,
       title: 'Save Changes?',
       message: 'Are you sure you want to update the details for "$merchant"?',
-      confirmText: 'Save Changes',
+      confirmText: 'Save',
       cancelText: 'Cancel',
       confirmColor: AppTheme.seaBlue,
       icon: Icons.edit_note_rounded,
@@ -213,8 +218,12 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
               ];
 
         final updatedItems = itemsToSave.map((c) {
-          final name = c.nameController.text.trim().isEmpty ? 'Item' : c.nameController.text.trim();
-          final price = ThousandsSeparatorInputFormatter.parse(c.priceController.text);
+          final name = c.nameController.text.trim().isEmpty
+              ? 'Item'
+              : c.nameController.text.trim();
+          final price = ThousandsSeparatorInputFormatter.parse(
+            c.priceController.text,
+          );
           return ReceiptItem(name: name, price: price);
         }).toList();
 
@@ -315,7 +324,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white24 : Colors.grey.withValues(alpha: 0.3),
+                  color: isDark
+                      ? Colors.white24
+                      : Colors.grey.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -342,8 +353,8 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                       child: DetailExpenseSkeleton(),
                     )
                   : (_isEditing
-                      ? _buildEditModule(isDark, categories)
-                      : _buildDetailView(isDark, dateFormatter, items)),
+                        ? _buildEditModule(isDark, categories)
+                        : _buildDetailView(isDark, dateFormatter, items)),
             ),
           ),
         ],
@@ -379,9 +390,11 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                         ),
                         child: Center(
                           child: Icon(
-                            _currentTx.category?.icon ?? Icons.receipt_long_rounded,
+                            _currentTx.category?.icon ??
+                                Icons.receipt_long_rounded,
                             size: 16,
-                            color: _currentTx.category?.color ??
+                            color:
+                                _currentTx.category?.color ??
                                 (isDark ? Colors.white : AppTheme.pureBlack),
                           ),
                         ),
@@ -430,7 +443,8 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
         const SizedBox(height: 14),
 
         // Receipt Image Preview (if attached)
-        if (_currentTx.receiptUrl != null && _currentTx.receiptUrl!.isNotEmpty) ...[
+        if (_currentTx.receiptUrl != null &&
+            _currentTx.receiptUrl!.isNotEmpty) ...[
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: Image.network(
@@ -450,7 +464,10 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                     children: [
                       Icon(Icons.receipt_long, size: 20, color: Colors.grey),
                       SizedBox(width: 8),
-                      Text('Receipt attached', style: TextStyle(color: Colors.grey, fontSize: 13)),
+                      Text(
+                        'Receipt attached',
+                        style: TextStyle(color: Colors.grey, fontSize: 13),
+                      ),
                     ],
                   ),
                 ),
@@ -465,7 +482,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
             decoration: BoxDecoration(
-              color: _currentTx.category!.color.withValues(alpha: isDark ? 0.20 : 0.12),
+              color: _currentTx.category!.color.withValues(
+                alpha: isDark ? 0.20 : 0.12,
+              ),
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _currentTx.category!.color.withValues(alpha: 0.35),
@@ -570,7 +589,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
             style: ElevatedButton.styleFrom(
               backgroundColor: isDark ? Colors.white : AppTheme.pureBlack,
               foregroundColor: isDark ? AppTheme.pureBlack : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 0,
             ),
             icon: const Icon(Icons.edit_outlined, size: 18),
@@ -597,7 +618,10 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
               ),
               icon: const Icon(Icons.delete_outline, size: 18),
-              label: const Text('Delete Expense', style: TextStyle(fontWeight: FontWeight.w600)),
+              label: const Text(
+                'Delete Expense',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
               onPressed: () async {
                 final confirmed = await ActionConfirmationDialog.show(
                   context,
@@ -714,7 +738,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                         border: InputBorder.none,
                         hintText: '0',
                         hintStyle: TextStyle(
-                          color: isDark ? Colors.white38 : AppTheme.grayTextMuted,
+                          color: isDark
+                              ? Colors.white38
+                              : AppTheme.grayTextMuted,
                         ),
                       ),
                     ),
@@ -751,16 +777,23 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
               color: isDark ? Colors.white70 : AppTheme.pureBlack,
             ),
             hintText: 'Store / merchant name',
-            hintStyle: const TextStyle(color: AppTheme.grayTextMuted, fontSize: 13),
+            hintStyle: const TextStyle(
+              color: AppTheme.grayTextMuted,
+              fontSize: 13,
+            ),
             filled: true,
             fillColor: isDark ? const Color(0xFF18181B) : Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder,
+              ),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder),
+              borderSide: BorderSide(
+                color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder,
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -769,7 +802,10 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                 width: 1.5,
               ),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
           ),
         ),
         const SizedBox(height: 16),
@@ -800,27 +836,30 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                 },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: isSelected
                         ? cat.color.withValues(alpha: isDark ? 0.28 : 0.16)
-                        : (isDark ? const Color(0xFF18181B) : AppTheme.grayKeypad),
+                        : (isDark
+                              ? const Color(0xFF18181B)
+                              : AppTheme.grayKeypad),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: isSelected
                           ? cat.color.withValues(alpha: 0.6)
-                          : (isDark ? const Color(0xFF27272A) : AppTheme.grayBorder),
+                          : (isDark
+                                ? const Color(0xFF27272A)
+                                : AppTheme.grayBorder),
                       width: 1,
                     ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        cat.icon,
-                        size: 14,
-                        color: cat.color,
-                      ),
+                      Icon(cat.icon, size: 14, color: cat.color),
                       const SizedBox(width: 6),
                       Text(
                         cat.name,
@@ -828,7 +867,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                           color: isSelected
                               ? cat.color
                               : (isDark ? Colors.white : AppTheme.pureBlack),
-                          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                           fontSize: 13,
                         ),
                       ),
@@ -877,7 +918,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF18181B) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder),
+              border: Border.all(
+                color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder,
+              ),
             ),
             child: Row(
               children: [
@@ -927,14 +970,20 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                 children: [
                   Text(
                     '${_extractedItemControllers.length} items',
-                    style: const TextStyle(fontSize: 12, color: AppTheme.grayTextMuted),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.grayTextMuted,
+                    ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: _addExtractedItem,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       child: Row(
                         children: [
                           Icon(
@@ -948,7 +997,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white70 : AppTheme.pureBlack,
+                              color: isDark
+                                  ? Colors.white70
+                                  : AppTheme.pureBlack,
                             ),
                           ),
                         ],
@@ -964,7 +1015,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
             decoration: BoxDecoration(
               color: isDark ? const Color(0xFF18181B) : Colors.white,
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder),
+              border: Border.all(
+                color: isDark ? const Color(0xFF27272A) : AppTheme.grayBorder,
+              ),
             ),
             child: ListView.separated(
               shrinkWrap: true,
@@ -977,14 +1030,19 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
               itemBuilder: (context, index) {
                 final itemC = _extractedItemControllers[index];
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   child: Row(
                     children: [
                       // Item Name TextField
                       Expanded(
                         child: TextField(
                           controller: itemC.nameController,
-                          cursorColor: isDark ? Colors.white : AppTheme.pureBlack,
+                          cursorColor: isDark
+                              ? Colors.white
+                              : AppTheme.pureBlack,
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -1019,7 +1077,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                           controller: itemC.priceController,
                           keyboardType: TextInputType.number,
                           textAlign: TextAlign.end,
-                          cursorColor: isDark ? Colors.white : AppTheme.pureBlack,
+                          cursorColor: isDark
+                              ? Colors.white
+                              : AppTheme.pureBlack,
                           inputFormatters: [
                             FilteringTextInputFormatter.digitsOnly,
                             ThousandsSeparatorInputFormatter(),
@@ -1049,7 +1109,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
                           icon: Icon(
                             Icons.close,
                             size: 16,
-                            color: isDark ? Colors.white54 : AppTheme.grayTextMuted,
+                            color: isDark
+                                ? Colors.white54
+                                : AppTheme.grayTextMuted,
                           ),
                           padding: EdgeInsets.zero,
                           constraints: const BoxConstraints(),
@@ -1076,7 +1138,9 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
               backgroundColor: isDark ? Colors.white : AppTheme.pureBlack,
               foregroundColor: isDark ? AppTheme.pureBlack : Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               elevation: 0,
             ),
             icon: _isSaving
