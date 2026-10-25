@@ -1,4 +1,4 @@
-name: Fin Sail CI & GitHub Pages Deploy
+name: Fin Sail CI & Multi-Cloud Deploy (Vercel & Pages)
 
 on:
   push:
@@ -11,16 +11,16 @@ permissions:
   id-token: write
 
 concurrency:
-  group: 'pages'
+  group: 'deploy'
   cancel-in-progress: true
 
 jobs:
   build-and-deploy:
-    name: Build & Deploy to GitHub Pages
+    name: Build, Test & Deploy
     runs-on: ubuntu-latest
     environment:
       name: prod
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://fin-sail.vercel.app
 
     steps:
       - name: Checkout Code
@@ -41,10 +41,27 @@ jobs:
       - name: Run Automated Unit Tests
         run: flutter test
 
-      - name: Setup Pages
+      - name: Build Web Release (Vercel Root Domain)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          flutter build web --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY"
+
+      - name: Deploy to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          npx --yes vercel deploy --prod --yes --token="$VERCEL_TOKEN"
+
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Build Flutter Web Release
+      - name: Rebuild Web Release (GitHub Pages Subpath)
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}

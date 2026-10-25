@@ -54,3 +54,5 @@ supabase/.temp/
 # Environment files
 .env
 .env*.local
+.vercel
+.env*
