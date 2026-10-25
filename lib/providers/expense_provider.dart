@@ -11,6 +11,12 @@ class ExpenseProvider extends ChangeNotifier {
   final SupabaseService _supabaseService = SupabaseService();
   late final ReceiptScannerService _scannerService = ReceiptScannerService();
 
+  ExpenseProvider() {
+    _supabaseService.onAuthStateChanged = (user) {
+      notifyListeners();
+    };
+  }
+
   List<TransactionModel> _transactions = [];
   List<CategoryModel> _categories = [];
   DateTime _selectedMonth = DateTime.now();
@@ -32,6 +38,7 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> signInWithGoogle() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
       final user = await _supabaseService.signInWithGoogle();
@@ -40,7 +47,55 @@ class ExpenseProvider extends ChangeNotifier {
       return user != null;
     } catch (e) {
       _isLoading = false;
-      _error = 'Google Sign In failed: $e';
+      _error = 'Google Sign In failed: ${e.toString().replaceFirst('Exception: ', '')}';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> signUpWithPhone({
+    required String phone,
+    required String password,
+    String? displayName,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final user = await _supabaseService.signUpWithPhone(
+        phone: phone,
+        password: password,
+        displayName: displayName,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return user != null;
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString().replaceFirst('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> signInWithPhone({
+    required String phone,
+    required String password,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      final user = await _supabaseService.signInWithPhone(
+        phone: phone,
+        password: password,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return user != null;
+    } catch (e) {
+      _isLoading = false;
+      _error = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();
       return false;
     }

@@ -4,6 +4,7 @@ class AppTheme {
   // Mibu Minimalist Monochromatic Theme
   static const Color black = Color(0xFF111111);
   static const Color pureBlack = Color(0xFF000000);
+  static const Color seaBlue = Color(0xFF0284C7);
   static const Color white = Color(0xFFFFFFFF);
   static const Color grayBg = Color(0xFFF7F7F8);
   static const Color grayBorder = Color(0xFFE4E4E7);

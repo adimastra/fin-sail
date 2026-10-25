@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -768,21 +769,22 @@ class _MonthDetailsSheetModalState extends State<MonthDetailsSheetModal> {
           Stack(
             alignment: Alignment.center,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    size: 20,
-                    color: isDark ? Colors.white70 : AppTheme.pureBlack,
+              if (kDebugMode)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.refresh,
+                      size: 20,
+                      color: isDark ? Colors.white70 : AppTheme.pureBlack,
+                    ),
+                    tooltip: 'Reload & Test Skeleton',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    splashRadius: 20,
+                    onPressed: _handleReload,
                   ),
-                  tooltip: 'Reload & Test Skeleton',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  splashRadius: 20,
-                  onPressed: _handleReload,
                 ),
-              ),
               Container(
                 width: 36,
                 height: 4,

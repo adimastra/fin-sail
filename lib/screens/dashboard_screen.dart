@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../config/theme.dart';
@@ -94,15 +95,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh,
-              size: 22,
-              color: isDark ? Colors.white : AppTheme.pureBlack,
+          if (kDebugMode)
+            IconButton(
+              icon: Icon(
+                Icons.refresh,
+                size: 22,
+                color: isDark ? Colors.white : AppTheme.pureBlack,
+              ),
+              tooltip: 'Reload & Test Skeleton',
+              onPressed: () => provider.refreshData(),
             ),
-            tooltip: 'Reload & Test Skeleton',
-            onPressed: () => provider.refreshData(),
-          ),
           IconButton(
             icon: Icon(
               _isSearching ? Icons.close : Icons.search,

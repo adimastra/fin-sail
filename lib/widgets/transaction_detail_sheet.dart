@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -280,21 +281,22 @@ class _TransactionDetailSheetState extends State<TransactionDetailSheet> {
           Stack(
             alignment: Alignment.center,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  icon: Icon(
-                    Icons.refresh,
-                    size: 20,
-                    color: isDark ? Colors.white70 : AppTheme.pureBlack,
+              if (kDebugMode)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.refresh,
+                      size: 20,
+                      color: isDark ? Colors.white70 : AppTheme.pureBlack,
+                    ),
+                    tooltip: 'Reload & Test Skeleton',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    splashRadius: 20,
+                    onPressed: _handleReload,
                   ),
-                  tooltip: 'Reload & Test Skeleton',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  splashRadius: 20,
-                  onPressed: _handleReload,
                 ),
-              ),
               Container(
                 width: 36,
                 height: 4,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -336,33 +337,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: 'AI Receipt Parser',
               subtitle: 'Gemini 2.5 Flash Vision',
             ),
-            const SizedBox(height: 10),
-
-            _buildSettingTile(
-              icon: Icons.hourglass_top_rounded,
-              title: 'Test Skeleton Loader',
-              subtitle: 'Simulate 2.5s network fetch delay',
-              trailing: TextButton(
-                onPressed: () {
-                  provider.refreshData();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Simulating 2.5s fetch delay. Check Overview or Analytics!',
+            if (kDebugMode) ...[
+              const SizedBox(height: 10),
+              _buildSettingTile(
+                icon: Icons.hourglass_top_rounded,
+                title: 'Test Skeleton Loader',
+                subtitle: 'Simulate 2.5s network fetch delay',
+                trailing: TextButton(
+                  onPressed: () {
+                    provider.refreshData();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Simulating 2.5s fetch delay. Check Overview or Analytics!',
+                        ),
+                        duration: Duration(seconds: 2),
                       ),
-                      duration: Duration(seconds: 2),
+                    );
+                  },
+                  child: Text(
+                    'Reload',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : AppTheme.pureBlack,
                     ),
-                  );
-                },
-                child: Text(
-                  'Reload',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : AppTheme.pureBlack,
                   ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 28),
 
             // Account & SSO

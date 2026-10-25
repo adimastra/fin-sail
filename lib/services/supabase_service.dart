@@ -23,6 +23,7 @@ class SupabaseService {
   AuthUser? _currentUser;
   AuthUser? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null;
+  void Function(AuthUser?)? onAuthStateChanged;
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -38,6 +39,15 @@ class SupabaseService {
         if (currentAuthUser != null) {
           _currentUser = AuthUser.fromSupabaseUser(currentAuthUser);
         }
+        _client?.auth.onAuthStateChange.listen((data) {
+          final session = data.session;
+          if (session?.user != null) {
+            _currentUser = AuthUser.fromSupabaseUser(session!.user);
+          } else if (data.event == AuthChangeEvent.signedOut) {
+            _currentUser = null;
+          }
+          onAuthStateChanged?.call(_currentUser);
+        });
         debugPrint('Supabase successfully initialized.');
       } catch (e) {
         debugPrint('Failed to initialize Supabase, fallback to Demo Mode: $e');
@@ -58,19 +68,90 @@ class SupabaseService {
         final user = _client!.auth.currentUser;
         if (user != null) {
           _currentUser = AuthUser.fromSupabaseUser(user);
+          onAuthStateChanged?.call(_currentUser);
           return _currentUser;
         }
+        return null;
       } catch (e) {
-        debugPrint('Supabase Google OAuth failed, fallback to mock SSO: $e');
+        debugPrint('Supabase Google OAuth failed: $e');
+        rethrow;
       }
     }
-    // Instant fallback/mock Google user for fast interactive experience
+    // Only in explicit offline Demo Mode
     _currentUser = AuthUser.mockGoogleUser();
+    onAuthStateChanged?.call(_currentUser);
+    return _currentUser;
+  }
+
+  Future<AuthUser?> signUpWithPhone({
+    required String phone,
+    required String password,
+    String? displayName,
+  }) async {
+    if (!isDemoMode && _client != null) {
+      try {
+        final res = await _client!.auth.signUp(
+          phone: phone,
+          password: password,
+          data: displayName != null ? {'display_name': displayName} : null,
+        );
+        final user = res.user;
+        if (user != null) {
+          _currentUser = AuthUser.fromSupabaseUser(user);
+          onAuthStateChanged?.call(_currentUser);
+          return _currentUser;
+        }
+        return null;
+      } catch (e) {
+        debugPrint('Supabase phone sign up failed: $e');
+        rethrow;
+      }
+    }
+    _currentUser = AuthUser(
+      id: 'demo-phone-user',
+      email: '$phone@demo.finsail.app',
+      displayName: displayName ?? 'User ${phone.length >= 4 ? phone.substring(phone.length - 4) : phone}',
+      provider: 'phone',
+    );
+    onAuthStateChanged?.call(_currentUser);
+    return _currentUser;
+  }
+
+  Future<AuthUser?> signInWithPhone({
+    required String phone,
+    required String password,
+  }) async {
+    if (!isDemoMode && _client != null) {
+      try {
+        final res = await _client!.auth.signInWithPassword(
+          phone: phone,
+          password: password,
+        );
+        final user = res.user;
+        if (user != null) {
+          _currentUser = AuthUser.fromSupabaseUser(user);
+          onAuthStateChanged?.call(_currentUser);
+          return _currentUser;
+        }
+        return null;
+      } catch (e) {
+        debugPrint('Supabase phone sign in failed: $e');
+        rethrow;
+      }
+    }
+    _currentUser = AuthUser(
+      id: 'demo-phone-user',
+      email: '$phone@demo.finsail.app',
+      displayName: 'User ${phone.length >= 4 ? phone.substring(phone.length - 4) : phone}',
+      provider: 'phone',
+    );
+    onAuthStateChanged?.call(_currentUser);
     return _currentUser;
   }
 
   Future<AuthUser> signInAsGuest() async {
     _currentUser = AuthUser.mockGoogleUser();
+    onAuthStateChanged?.call(_currentUser);
     return _currentUser!;
   }
 

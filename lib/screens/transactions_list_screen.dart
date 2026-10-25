@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -230,15 +231,16 @@ class _TransactionsListScreenState extends State<TransactionsListScreen> {
         ),
         centerTitle: false,
         actions: [
-          IconButton(
-            icon: Icon(
-              Icons.refresh,
-              size: 22,
-              color: isDark ? Colors.white : AppTheme.pureBlack,
+          if (kDebugMode)
+            IconButton(
+              icon: Icon(
+                Icons.refresh,
+                size: 22,
+                color: isDark ? Colors.white : AppTheme.pureBlack,
+              ),
+              tooltip: 'Reload & Test Skeleton',
+              onPressed: () => context.read<ExpenseProvider>().refreshData(),
             ),
-            tooltip: 'Reload & Test Skeleton',
-            onPressed: () => context.read<ExpenseProvider>().refreshData(),
-          ),
           const SizedBox(width: 8),
         ],
       ),
