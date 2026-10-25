@@ -295,8 +295,8 @@ class ExpenseProvider extends ChangeNotifier {
 
       final newTx = TransactionModel(
         id: '',
-        userId: 'current-user',
-        categoryId: categoryId,
+        userId: currentUser?.id ?? '',
+        categoryId: category.id,
         category: category,
         amount: amount,
         currency: 'IDR',
@@ -384,10 +384,10 @@ class ExpenseProvider extends ChangeNotifier {
   }) async {
     try {
       final newCat = CategoryModel(
-        id: 'cat-custom-${DateTime.now().millisecondsSinceEpoch}',
-        userId: 'current-user',
+        id: '',
+        userId: currentUser?.id,
         name: name.trim().toLowerCase(),
-        emoji: emoji.trim().isEmpty ? '' : emoji.trim(),
+        emoji: emoji.trim().isEmpty ? '📦' : emoji.trim(),
         iconName: iconName ?? 'inventory_2',
         colorHex: colorHex,
         isDefault: false,

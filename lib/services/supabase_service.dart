@@ -486,6 +486,11 @@ class SupabaseService {
     }
   }
 
+  bool _isValidUuid(String? id) {
+    if (id == null || id.isEmpty) return false;
+    return RegExp(r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$').hasMatch(id);
+  }
+
   // Add new transaction
   Future<TransactionModel> addTransaction(TransactionModel tx) async {
     if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
@@ -501,24 +506,64 @@ class SupabaseService {
       return newTx;
     }
 
-    final data = tx.toJson()..remove('id');
-    final res = await _client!.from('transactions').insert(data).select().single();
-    return TransactionModel.fromJson(res);
+    final currentUserId = _client!.auth.currentUser?.id;
+    if (currentUserId == null) {
+      throw Exception('Unauthenticated: User must be signed in to add an expense.');
+    }
+
+    String? resolvedCategoryId = tx.categoryId;
+    if (!_isValidUuid(resolvedCategoryId)) {
+      try {
+        final cats = await getCategories();
+        final match = cats.firstWhere(
+          (c) => c.id == tx.categoryId || c.name.toLowerCase() == (tx.category?.name ?? '').toLowerCase(),
+          orElse: () => cats.firstWhere((c) => c.isDefault, orElse: () => cats.first),
+        );
+        if (_isValidUuid(match.id)) {
+          resolvedCategoryId = match.id;
+        } else {
+          resolvedCategoryId = null;
+        }
+      } catch (_) {
+        resolvedCategoryId = null;
+      }
+    }
+
+    final data = <String, dynamic>{
+      'user_id': currentUserId,
+      'category_id': ?resolvedCategoryId,
+      'amount': tx.amount,
+      'currency': tx.currency.isEmpty ? 'IDR' : tx.currency,
+      'type': 'expense',
+      if (tx.merchant != null && tx.merchant!.isNotEmpty) 'merchant': tx.merchant,
+      'transaction_date': tx.transactionDate.toIso8601String(),
+      if (tx.receiptUrl != null) 'receipt_url': tx.receiptUrl,
+      if (tx.extractedData != null) 'extracted_data': tx.extractedData!.toJson(),
+    };
+
+    final res = await _client!.from('transactions').insert(data).select('*, categories(*)').single();
+    final catData = res['categories'];
+    final category = catData != null ? CategoryModel.fromJson(catData) : tx.category;
+    return TransactionModel.fromJson(res, category: category);
   }
 
   // Delete transaction
   Future<void> deleteTransaction(String id) async {
-    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true) || !_isValidUuid(id)) {
       _mockTransactions.removeWhere((tx) => tx.id == id);
       return;
     }
 
-    await _client!.from('transactions').delete().eq('id', id);
+    try {
+      await _client!.from('transactions').delete().eq('id', id);
+    } catch (e) {
+      debugPrint('Supabase delete failed: $e');
+    }
   }
 
   // Update transaction
   Future<TransactionModel> updateTransaction(TransactionModel tx) async {
-    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true) || !_isValidUuid(tx.id)) {
       final index = _mockTransactions.indexWhere((t) => t.id == tx.id);
       if (index != -1) {
         _mockTransactions[index] = tx;
@@ -526,13 +571,46 @@ class SupabaseService {
       return tx;
     }
 
+    final currentUserId = _client!.auth.currentUser?.id;
+    String? resolvedCategoryId = tx.categoryId;
+    if (!_isValidUuid(resolvedCategoryId)) {
+      try {
+        final cats = await getCategories();
+        final match = cats.firstWhere(
+          (c) => c.id == tx.categoryId || c.name.toLowerCase() == (tx.category?.name ?? '').toLowerCase(),
+          orElse: () => cats.first,
+        );
+        if (_isValidUuid(match.id)) {
+          resolvedCategoryId = match.id;
+        } else {
+          resolvedCategoryId = null;
+        }
+      } catch (_) {
+        resolvedCategoryId = null;
+      }
+    }
+
+    final data = <String, dynamic>{
+      'user_id': ?currentUserId,
+      'category_id': ?resolvedCategoryId,
+      'amount': tx.amount,
+      'currency': tx.currency,
+      'type': 'expense',
+      if (tx.merchant != null) 'merchant': tx.merchant,
+      'transaction_date': tx.transactionDate.toIso8601String(),
+      if (tx.receiptUrl != null) 'receipt_url': tx.receiptUrl,
+      if (tx.extractedData != null) 'extracted_data': tx.extractedData!.toJson(),
+    };
+
     final res = await _client!
         .from('transactions')
-        .update(tx.toJson())
+        .update(data)
         .eq('id', tx.id)
         .select('*, categories(*)')
         .single();
-    return TransactionModel.fromJson(res);
+    final catData = res['categories'];
+    final category = catData != null ? CategoryModel.fromJson(catData) : tx.category;
+    return TransactionModel.fromJson(res, category: category);
   }
 
   // Categories
@@ -551,15 +629,24 @@ class SupabaseService {
   }
 
   Future<CategoryModel> addCategory(CategoryModel category) async {
-    if (!isDemoMode && _client != null) {
+    if (!isDemoMode && _client != null && !(_currentUser?.isGuest ?? true)) {
       try {
-        final payload = category.toJson();
+        final currentUserId = _client!.auth.currentUser?.id;
+        final payload = <String, dynamic>{
+          'user_id': ?currentUserId,
+          'name': category.name,
+          'color_hex': category.colorHex,
+          'icon_name': category.iconName ?? 'inventory_2',
+          'type': 'expense',
+          'is_default': false,
+        };
         final res = await _client!.from('categories').insert(payload).select().single();
         final created = CategoryModel.fromJson(res);
         _mockCategories.add(created);
         return created;
       } catch (e) {
         debugPrint('Supabase category insert failed: $e');
+        rethrow;
       }
     }
     _mockCategories.add(category);
@@ -574,11 +661,12 @@ class SupabaseService {
       return false;
     }
 
-    if (!isDemoMode && _client != null) {
+    if (!isDemoMode && _client != null && !(_currentUser?.isGuest ?? true) && _isValidUuid(id)) {
       try {
         await _client!.from('categories').delete().eq('id', id);
       } catch (e) {
         debugPrint('Supabase category delete failed: $e');
+        return false;
       }
     }
     if (catIndex != -1) {
