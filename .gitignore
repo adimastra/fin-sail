@@ -51,3 +51,6 @@ app.*.map.json
 graphify-out/
 supabase/.temp/
 /*.png
+# Environment files
+.env
+.env*.local
