@@ -13,7 +13,13 @@ class ExpenseProvider extends ChangeNotifier {
 
   ExpenseProvider() {
     _supabaseService.onAuthStateChanged = (user) {
-      notifyListeners();
+      if (user != null) {
+        loadUserData(isGuest: user.isGuest);
+      } else {
+        _transactions = [];
+        _categories = [];
+        notifyListeners();
+      }
     };
   }
 
@@ -41,10 +47,11 @@ class ExpenseProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      final user = await _supabaseService.signInWithGoogle();
-      _isLoading = false;
-      notifyListeners();
-      return user != null;
+      await _supabaseService.signInWithGoogle();
+      if (_supabaseService.currentUser != null) {
+        await loadUserData(isGuest: _supabaseService.currentUser!.isGuest);
+      }
+      return true;
     } catch (e) {
       _isLoading = false;
       _error = 'Google Sign In failed: ${e.toString().replaceFirst('Exception: ', '')}';
@@ -103,11 +110,11 @@ class ExpenseProvider extends ChangeNotifier {
 
   Future<bool> signInAsGuest() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
     try {
       await _supabaseService.signInAsGuest();
-      _isLoading = false;
-      notifyListeners();
+      await loadUserData(isGuest: true);
       return true;
     } catch (e) {
       _isLoading = false;
@@ -118,7 +125,12 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    _isLoading = true;
+    notifyListeners();
     await _supabaseService.signOut();
+    _transactions = [];
+    _categories = [];
+    _isLoading = false;
     notifyListeners();
   }
 
@@ -213,7 +225,26 @@ class ExpenseProvider extends ChangeNotifier {
     return map;
   }
 
-  Future<void> init({Duration delay = const Duration(milliseconds: 2500)}) async {
+  Future<void> init({Duration delay = const Duration(milliseconds: 600)}) async {
+    try {
+      await _supabaseService.initialize();
+      if (_supabaseService.currentUser != null) {
+        await loadUserData(
+          isGuest: _supabaseService.currentUser!.isGuest,
+          delay: delay,
+        );
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  // Load user data with brief shimmer skeleton delay
+  Future<void> loadUserData({
+    bool isGuest = false,
+    Duration delay = const Duration(milliseconds: 600),
+  }) async {
     _isLoading = true;
     notifyListeners();
 
@@ -221,7 +252,6 @@ class ExpenseProvider extends ChangeNotifier {
       if (delay > Duration.zero) {
         await Future.delayed(delay);
       }
-      await _supabaseService.initialize();
       _categories = List.from(await _supabaseService.getCategories());
       _transactions = List.from(await _supabaseService.getTransactions());
     } catch (e) {
@@ -233,20 +263,11 @@ class ExpenseProvider extends ChangeNotifier {
   }
 
   // Reload data with delay to test and preview skeleton loader anytime
-  Future<void> refreshData({Duration delay = const Duration(milliseconds: 2500)}) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-      await Future.delayed(delay);
-      _categories = List.from(await _supabaseService.getCategories());
-      _transactions = List.from(await _supabaseService.getTransactions());
-    } catch (e) {
-      _error = e.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+  Future<void> refreshData({Duration delay = const Duration(milliseconds: 2000)}) async {
+    await loadUserData(
+      isGuest: _supabaseService.currentUser?.isGuest ?? true,
+      delay: delay,
+    );
   }
 
   void changeMonth(DateTime newMonth) {

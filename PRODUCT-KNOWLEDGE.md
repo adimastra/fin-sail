@@ -7,7 +7,7 @@ This document contains a thorough architectural and feature-level explanation of
 ## 📌 Table of Contents
 1. [Product Overview & Value Proposition](#1-product-overview--value-proposition)
 2. [High-Level System Architecture](#2-high-level-system-architecture)
-3. [Module 1: Authentication & Onboarding (Phone, Google SSO, Guest)](#3-module-1-authentication--onboarding)
+3. [Module 1: Authentication & Onboarding (Google SSO, Quick Demo, Sign Out)](#3-module-1-authentication--onboarding)
 4. [Module 2: Overview & Home Dashboard](#4-module-2-overview--home-dashboard)
 5. [Module 3: Manual Expense Entry (Keypad)](#5-module-3-manual-expense-entry-keypad)
 6. [Module 4: AI Receipt Scanner & OCR Vision](#6-module-4-ai-receipt-scanner--ocr-vision)
@@ -78,22 +78,21 @@ graph TD
 **File**: `lib/screens/login_screen.dart`, `lib/models/auth_user.dart`, `lib/services/supabase_service.dart`
 
 ### Features & Capabilities
-1. **Phone Number & Password Registration & Sign-In Module**:
-   - **Interactive Mode Selector**: Segmented toggle between **"Sign In"** and **"Register"** seamlessly within the same card.
-   - **Country Code Prefix & Normalization**: Dedicated `+62` country code prefix badge with automatic phone number normalization (`0812...` -> `+62812...`). Supports international formats.
-   - **Secure Password Handling**: Enforces minimum 6-character length per Supabase standards. Includes interactive show/hide eye toggle.
-   - **Full Name & Confirmation**: On registration mode, prompts for full name (saved to Supabase user metadata) and confirm password validation.
-   - **Direct Supabase Auth**: Calls `_client.auth.signUp(phone: ..., password: ...)` and `signInWithPassword()`.
-2. **Strict Google Single Sign-On (SSO)**:
-   - Powered by Supabase Auth (`supabase.auth.signInWithOAuth(OAuthProvider.google)`).
-   - **Strict Auth Guarding**: Fails gracefully with floating error SnackBars if OAuth is cancelled or unconfigured. Never silently falls back to mock accounts, ensuring the home page is only accessible upon genuine authentication.
-   - **Auth State Stream**: Supabase `onAuthStateChange` listener continuously synchronizes the user's active session.
-3. **Quick Demo / Guest Access**:
+1. **Google Single Sign-On (SSO)**:
+   - Authenticated directly with Google Cloud OAuth and Supabase Auth (`supabase.auth.signInWithOAuth(OAuthProvider.google)`).
+   - **Dynamic Web Redirects**: Configured with live site origin (`${Uri.base.origin}${Uri.base.path}`) ensuring OAuth tokens land back cleanly on production domains without localhost redirections.
+   - **Cloud PostgreSQL Data Persistence**: Google-authenticated users consume and write 100% live data to Supabase `public.transactions` and `public.categories` secured by Row-Level Security (RLS).
+2. **Quick Demo / Guest Access**:
    - 1-Tap entry allowing immediate evaluation of the application without an account.
-   - Explicitly invokes `signInAsGuest()`, pre-seeding realistic Indonesian Rupiah (Rp) / multi-currency transactions, categories, and sample receipts in-memory without violating PostgreSQL RLS policies.
+   - Explicitly invokes `signInAsGuest()` with `isGuest: true`, loading 14 realistic pre-seeded in-memory transactions and default categories.
+   - Completely isolated from cloud tables—never leaks or encounters RLS errors.
+3. **Sign Out Flow**:
+   - Available via Settings page with confirmation dialog.
+   - Clears in-memory transactions and categories, revokes Supabase session, and returns the application cleanly to `LoginScreen`.
 4. **Branded Visual Experience**:
    - Official **Fin Sail** header with stylized boat/wave logo in Sea Blue (`#0284C7`).
-   - Clean dark-mode card surfaces (`#18181B`), crisp typography, Sea Blue primary submit button, and subtle security footer.
+   - Feature highlight cards for AI Receipt OCR Vision, Tactile Keypad, and Supabase PostgreSQL.
+   - Clean security footer noting Supabase Auth & Google Cloud OAuth.
 
 ---
 

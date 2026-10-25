@@ -26,7 +26,7 @@ This document serves as the single source of truth for AI coding agents and huma
 | **Hosting & CDN** | Vercel & GitHub Pages | Dual-cloud automated deployment via GitHub Actions CI/CD |
 | **Backend & Database** | Supabase (PostgreSQL) | Tables: `profiles`, `categories`, `transactions` |
 | **Security** | Row-Level Security (RLS) | Strictly isolated user data (`auth.uid() = user_id`) |
-| **Authentication** | Supabase Auth | Google SSO, Phone & Password (`auth.users`), and 1-tap Guest Demo |
+| **Authentication** | Supabase Auth | Google SSO & 1-tap Guest Demo (Isolated Mock Data) |
 | **Storage** | Supabase Storage | `Receipts` bucket for receipt scans |
 | **AI / OCR** | Gemini 2.5 Flash Vision | Supabase Edge Function (`parse-receipt`) |
 | **Internationalization** | `intl` | Multi-currency formatting (IDR, USD, EUR, GBP) |
@@ -54,7 +54,7 @@ fin-logs/
 │   ├── screens/
 │   │   ├── dashboard_screen.dart          # Home screen with monthly curve & recent spend
 │   │   ├── keypad_expense_screen.dart     # Manual entry tactile keypad with inline delete
-│   │   ├── login_screen.dart              # Phone/Password auth, Google SSO & Guest Demo
+│   │   ├── login_screen.dart              # Google SSO & Quick Demo / Guest Access
 │   │   ├── main_navigation_screen.dart    # Bottom nav (Analytics, Home, Settings) + FABs
 │   │   ├── manage_categories_screen.dart  # Custom category manager with color palette picker
 │   │   ├── receipt_scanner_modal.dart     # Live camera/file upload & laser scanner
@@ -85,7 +85,7 @@ fin-logs/
 │   │   ├── category_model_test.dart       # Signature color & icon tests
 │   │   ├── currency_format_test.dart      # Formatting precision tests
 │   │   ├── expense_provider_test.dart     # State management CRUD tests
-│   │   ├── phone_auth_test.dart           # Phone sign-up, login, and guard tests
+│   │   ├── phone_auth_test.dart           # Google SSO, Guest mock, and Sign Out tests
 │   │   └── transaction_model_test.dart    # Transaction & Receipt parsing tests
 │   ├── flutter_test_config.dart           # Hermetic test configuration
 │   └── widget_test.dart                   # Smoke and widget tests

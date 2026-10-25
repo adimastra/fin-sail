@@ -63,10 +63,10 @@ Fin Sail is built around a single, uncompromising principle: **pure expense visi
   - Category spending breakdown cards showing amount, percentage of total spend, and month-over-month trend badges (`+11% vs previous month`).
   - Tap any category card to open a drill-down transaction modal with matching category header branding.
 
-### 5. 🔐 Multi-Option Authentication & Strict Guards
-- **Phone Number & Password Registration**: Built-in register and sign-in module with automatic country code normalization (`+62`), input validation, and password visibility toggling.
-- **Strict Google SSO**: Powered by Supabase Auth with Row-Level Security (RLS). Strict guards prevent unauthenticated access upon aborted or failed OAuth redirects.
-- **1-Tap Quick Demo / Guest Access**: Instant access with realistic pre-seeded expenses, categories, and receipts—no credentials or setup needed to explore.
+### 5. 🔐 Streamlined Authentication & Strict Data Segregation
+- **Google SSO**: Authenticated via Google OAuth & Supabase Auth with Row-Level Security (RLS) and automatic OAuth callback handling. All data persists to live PostgreSQL database.
+- **1-Tap Quick Demo / Guest Access**: Instant frictionless exploration with 14 pre-seeded in-memory mock expenses and 10 categories. Completely isolated from cloud tables without requiring credentials.
+- **Clean Session Sign Out**: Accessible in Settings page to revoke sessions, reset memory state, and return securely to the welcome screen.
 
 ### 6. 📱 Responsive Desktop Mobile Canvas
 - Renders inside an ultra-sleek, centered smartphone canvas on desktop displays.

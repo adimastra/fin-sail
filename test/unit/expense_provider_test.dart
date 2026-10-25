@@ -8,6 +8,7 @@ void main() {
     setUp(() async {
       provider = ExpenseProvider();
       await provider.init(delay: Duration.zero);
+      await provider.signInAsGuest();
     });
 
     test('Initializes with default categories and mock data in demo mode', () {

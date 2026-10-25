@@ -42,13 +42,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Google SSO Profile / Fin Sail Branding Card
+            // Profile / SSO Header Card (Google SSO or Guest Demo)
             Consumer<ExpenseProvider>(
               builder: (context, expProvider, _) {
                 final user = expProvider.currentUser;
-                final name = user?.displayName ?? 'Fin Sail User';
-                final email = user?.email ?? 'user@gmail.com';
-                final avatar = user?.avatarUrl;
+                final isGuest = user?.isGuest ?? true;
+                final name = isGuest ? 'Fin Sail Guest' : (user?.displayName ?? 'Google User');
+                final email = isGuest ? 'In-Memory Mock Data' : (user?.email ?? 'Google Account');
+                final avatar = isGuest ? null : user?.avatarUrl;
 
                 return Container(
                   padding: const EdgeInsets.all(20),
@@ -68,7 +69,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           shape: BoxShape.circle,
                           color: isDark ? const Color(0xFF27272A) : Colors.white,
                           border: Border.all(
-                            color: const Color(0xFF0284C7).withValues(alpha: 0.5),
+                            color: (isGuest ? const Color(0xFFF59E0B) : const Color(0xFF0284C7))
+                                .withValues(alpha: 0.5),
                             width: 2,
                           ),
                           image: avatar != null
@@ -80,14 +82,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         child: avatar == null
                             ? Center(
-                                child: Text(
-                                  name.isNotEmpty ? name[0].toUpperCase() : 'F',
-                                  style: TextStyle(
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w700,
-                                    color: isDark ? Colors.white : AppTheme.pureBlack,
-                                  ),
-                                ),
+                                child: isGuest
+                                    ? const Icon(
+                                        Icons.bolt_rounded,
+                                        size: 26,
+                                        color: Color(0xFFF59E0B),
+                                      )
+                                    : Text(
+                                        name.isNotEmpty ? name[0].toUpperCase() : 'G',
+                                        style: TextStyle(
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? Colors.white : AppTheme.pureBlack,
+                                        ),
+                                      ),
                               )
                             : null,
                       ),
@@ -114,15 +122,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+                                    color: (isGuest ? const Color(0xFFF59E0B) : const Color(0xFF0284C7))
+                                        .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child: const Text(
-                                    'SSO',
+                                  child: Text(
+                                    isGuest ? 'DEMO GUEST' : 'GOOGLE SSO',
                                     style: TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFF0284C7),
+                                      color: isGuest ? const Color(0xFFF59E0B) : const Color(0xFF0284C7),
                                     ),
                                   ),
                                 ),
@@ -306,9 +315,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _buildSettingTile(
               icon: Icons.cloud_outlined,
               title: 'Supabase Database',
-              subtitle: SupabaseConfig.isDemoMode
-                  ? 'Demo Mode (Local mock)'
-                  : 'Connected',
+              subtitle: provider.currentUser?.isGuest ?? true
+                  ? 'In-Memory Local Demo (Mock)'
+                  : (SupabaseConfig.isDemoMode
+                      ? 'Demo Mode (Local mock)'
+                      : 'Connected PostgreSQL & RLS'),
               trailing: Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
@@ -321,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  SupabaseConfig.isDemoMode ? 'Mock' : 'Active',
+                  (provider.currentUser?.isGuest ?? true) || SupabaseConfig.isDemoMode ? 'Mock' : 'Active',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,

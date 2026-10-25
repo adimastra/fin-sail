@@ -18,9 +18,8 @@ graph TD
     Frame --> Nav[MainNavigationScreen]
 
     %% Authentication Sub-flows
-    Login --> PhoneAuth[Phone & Password Register/Sign-In]
-    Login --> GoogleSSO[Google OAuth SSO]
-    Login --> GuestAccess[1-Tap Quick Demo Access]
+    Login --> GoogleSSO[Google OAuth SSO (Supabase Auth)]
+    Login --> GuestAccess[1-Tap Quick Demo Access (In-Memory Mock)]
 
     %% Navigation Tabs
     Nav --> TabHome[DashboardScreen]
@@ -94,9 +93,10 @@ graph TD
     TestCurr[currency_format_test.dart] -.-> UtilCurr[CurrencyFormat]
     TestProv[expense_provider_test.dart] -.-> Provider
     TestProv -.-> MockData
-    TestPhone[phone_auth_test.dart] -.-> PhoneAuth
-    TestPhone -.-> Provider
-    TestPhone -.-> SupabaseSvc
+    TestAuth[phone_auth_test.dart] -.-> GoogleSSO
+    TestAuth -.-> GuestAccess
+    TestAuth -.-> Provider
+    TestAuth -.-> SupabaseSvc
 
     classDef screen fill:#1E1B4B,stroke:#6366F1,stroke-width:2px,color:#fff;
     classDef provider fill:#064E3B,stroke:#10B981,stroke-width:2px,color:#fff;
@@ -109,7 +109,7 @@ graph TD
     class Provider provider;
     class ModelTx,ModelCat,ModelReceipt,ModelUser model;
     class DB_Tx,DB_Cat,DB_Prof,DB_Auth,Bucket_Receipts,EdgeFunc,Gemini backend;
-    class TestCat,TestTx,TestCurr,TestProv,TestPhone test;
+    class TestCat,TestTx,TestCurr,TestProv,TestAuth test;
     class Vercel,Pages,VercelConfig,CI hosting;
 ```
 
@@ -121,7 +121,7 @@ When modifying any component, consult this table to assess which downstream depe
 
 | Component / Layer | File Path | Dependent UI / Logic | Impacted Backend / State | Unit Test Coverage |
 | :--- | :--- | :--- | :--- | :--- |
-| **`PhoneAuthModule`** | `lib/screens/login_screen.dart` | Register/Sign In mode switcher, phone & password fields | `SupabaseService.signUpWithPhone`, `ExpenseProvider` | `test/unit/phone_auth_test.dart` |
+| **`LoginScreen`** | `lib/screens/login_screen.dart` | Google SSO button, Quick Demo access button, value props | `SupabaseService.signInWithGoogle`, `signInAsGuest` | `test/unit/phone_auth_test.dart` |
 | **`CategoryModel`** | `lib/models/category_model.dart` | Manage Categories, Overview Avatars, Analytics Filter Chips, Donut Slices, Keypad Pill, Review Chips, Detail Pill | `categories` table, `ExpenseProvider.categories` | `test/unit/category_model_test.dart` |
 | **`TransactionModel`** | `lib/models/transaction_model.dart` | Overview List, All Expense Stream, Detail Sheet, Review Scanned Expense | `transactions` table, `items (JSONB)` | `test/unit/transaction_model_test.dart` |
 | **`ReceiptData`** | `lib/models/receipt_data.dart` | `ReceiptScannerService`, `ReviewReceiptScreen` | Gemini Edge Function output, Storage `Receipts` | `test/unit/transaction_model_test.dart` |

@@ -31,7 +31,7 @@ OUTPUT_DIR="$REPO_ROOT/graphify-out"
 mkdir -p "$OUTPUT_DIR"
 
 echo "🔍 Running Graphify AST analysis..."
-graphify extract . --code-only --output "$REPO_ROOT" || python3 -m graphify extract . --code-only --output "$REPO_ROOT"
+graphify extract . --code-only --allow-dedup-shrink --output "$REPO_ROOT" || python3 -m graphify extract . --code-only --allow-dedup-shrink --output "$REPO_ROOT"
 
 echo "📊 Generating interactive visual maps and Mermaid call flows..."
 graphify export html 2>/dev/null || true

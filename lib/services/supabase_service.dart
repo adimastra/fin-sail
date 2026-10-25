@@ -58,29 +58,25 @@ class SupabaseService {
     _initialized = true;
   }
 
-  Future<AuthUser?> signInWithGoogle() async {
+  Future<void> signInWithGoogle() async {
     if (!isDemoMode && _client != null) {
       try {
+        final redirectUrl = kIsWeb
+            ? '${Uri.base.origin}${Uri.base.path}'
+            : 'io.supabase.finlogs://login-callback/';
+        debugPrint('Launching Supabase Google OAuth with redirectTo: $redirectUrl');
         await _client!.auth.signInWithOAuth(
           OAuthProvider.google,
-          redirectTo: kIsWeb ? null : 'io.supabase.finlogs://login-callback/',
+          redirectTo: redirectUrl,
         );
-        final user = _client!.auth.currentUser;
-        if (user != null) {
-          _currentUser = AuthUser.fromSupabaseUser(user);
-          onAuthStateChanged?.call(_currentUser);
-          return _currentUser;
-        }
-        return null;
       } catch (e) {
         debugPrint('Supabase Google OAuth failed: $e');
         rethrow;
       }
+    } else {
+      _currentUser = AuthUser.mockGoogleUser();
+      onAuthStateChanged?.call(_currentUser);
     }
-    // Only in explicit offline Demo Mode
-    _currentUser = AuthUser.mockGoogleUser();
-    onAuthStateChanged?.call(_currentUser);
-    return _currentUser;
   }
 
   Future<AuthUser?> signUpWithPhone({
@@ -150,7 +146,8 @@ class SupabaseService {
   }
 
   Future<AuthUser> signInAsGuest() async {
-    _currentUser = AuthUser.mockGoogleUser();
+    _currentUser = AuthUser.guest();
+    _seedMockData();
     onAuthStateChanged?.call(_currentUser);
     return _currentUser!;
   }
@@ -164,9 +161,11 @@ class SupabaseService {
       }
     }
     _currentUser = null;
+    onAuthStateChanged?.call(null);
   }
 
   void _seedMockData() {
+    _mockTransactions.clear();
     final now = DateTime.now();
 
     // Helper to get or fallback category
@@ -464,97 +463,89 @@ class SupabaseService {
 
   // Fetch transactions (purely expenses)
   Future<List<TransactionModel>> getTransactions() async {
-    if (!isDemoMode && _client != null) {
-      try {
-        final res = await _client!
-            .from('transactions')
-            .select('*, categories(*)')
-            .order('transaction_date', ascending: false);
-
-        return (res as List).map((row) {
-          final catData = row['categories'];
-          final category = catData != null ? CategoryModel.fromJson(catData) : null;
-          return TransactionModel.fromJson(row, category: category);
-        }).toList();
-      } catch (e) {
-        debugPrint('Error fetching transactions from Supabase: $e');
-      }
+    // If guest or demo mode, strictly consume mock seed data
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+      _mockTransactions.sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
+      return List.unmodifiable(_mockTransactions);
     }
 
-    _mockTransactions.sort((a, b) => b.transactionDate.compareTo(a.transactionDate));
-    return List.unmodifiable(_mockTransactions);
+    try {
+      final res = await _client!
+          .from('transactions')
+          .select('*, categories(*)')
+          .order('transaction_date', ascending: false);
+
+      return (res as List).map((row) {
+        final catData = row['categories'];
+        final category = catData != null ? CategoryModel.fromJson(catData) : null;
+        return TransactionModel.fromJson(row, category: category);
+      }).toList();
+    } catch (e) {
+      debugPrint('Error fetching transactions from Supabase: $e');
+      return [];
+    }
   }
 
   // Add new transaction
   Future<TransactionModel> addTransaction(TransactionModel tx) async {
-    if (!isDemoMode && _client != null) {
-      try {
-        final data = tx.toJson()..remove('id');
-        final res = await _client!.from('transactions').insert(data).select().single();
-        return TransactionModel.fromJson(res);
-      } catch (e) {
-        debugPrint('Supabase insert failed: $e');
-      }
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+      final newTx = tx.copyWith(
+        id: tx.id.isEmpty ? 'tx-${DateTime.now().millisecondsSinceEpoch}' : tx.id,
+        currency: 'IDR',
+        category: tx.category ?? _mockCategories.firstWhere(
+          (c) => c.id == tx.categoryId,
+          orElse: () => _mockCategories.first,
+        ),
+      );
+      _mockTransactions.insert(0, newTx);
+      return newTx;
     }
 
-    final newTx = tx.copyWith(
-      id: tx.id.isEmpty ? 'tx-${DateTime.now().millisecondsSinceEpoch}' : tx.id,
-      currency: 'IDR',
-      category: tx.category ?? _mockCategories.firstWhere(
-        (c) => c.id == tx.categoryId,
-        orElse: () => _mockCategories.first,
-      ),
-    );
-    _mockTransactions.insert(0, newTx);
-    return newTx;
+    final data = tx.toJson()..remove('id');
+    final res = await _client!.from('transactions').insert(data).select().single();
+    return TransactionModel.fromJson(res);
   }
 
   // Delete transaction
   Future<void> deleteTransaction(String id) async {
-    if (!isDemoMode && _client != null) {
-      try {
-        await _client!.from('transactions').delete().eq('id', id);
-        return;
-      } catch (e) {
-        debugPrint('Supabase delete failed: $e');
-      }
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+      _mockTransactions.removeWhere((tx) => tx.id == id);
+      return;
     }
 
-    _mockTransactions.removeWhere((tx) => tx.id == id);
+    await _client!.from('transactions').delete().eq('id', id);
   }
 
   // Update transaction
   Future<TransactionModel> updateTransaction(TransactionModel tx) async {
-    if (!isDemoMode && _client != null) {
-      try {
-        final res = await _client!
-            .from('transactions')
-            .update(tx.toJson())
-            .eq('id', tx.id)
-            .select('*, categories(*)')
-            .single();
-        return TransactionModel.fromJson(res);
-      } catch (e) {
-        debugPrint('Supabase update failed: $e');
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+      final index = _mockTransactions.indexWhere((t) => t.id == tx.id);
+      if (index != -1) {
+        _mockTransactions[index] = tx;
       }
+      return tx;
     }
 
-    final index = _mockTransactions.indexWhere((t) => t.id == tx.id);
-    if (index != -1) {
-      _mockTransactions[index] = tx;
-    }
-    return tx;
+    final res = await _client!
+        .from('transactions')
+        .update(tx.toJson())
+        .eq('id', tx.id)
+        .select('*, categories(*)')
+        .single();
+    return TransactionModel.fromJson(res);
   }
 
   // Categories
   Future<List<CategoryModel>> getCategories() async {
-    if (!isDemoMode && _client != null) {
-      try {
-        final res = await _client!.from('categories').select().order('name');
-        return (res as List).map((c) => CategoryModel.fromJson(c)).toList();
-      } catch (e) {
-        debugPrint('Supabase categories fetch failed: $e');
-      }
+    if (isDemoMode || _client == null || (_currentUser?.isGuest ?? true)) {
+      return List.unmodifiable(_mockCategories);
+    }
+    try {
+      final res = await _client!.from('categories').select().order('name');
+      final list = (res as List).map((c) => CategoryModel.fromJson(c)).toList();
+      if (list.isNotEmpty) return list;
+    } catch (e) {
+      debugPrint('Supabase categories fetch failed: $e');
     }
     return List.unmodifiable(_mockCategories);
   }
