@@ -5,9 +5,11 @@ import 'providers/expense_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'widgets/mobile_frame.dart';
+import 'services/supabase_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService().initialize();
   runApp(const FinSailApp());
 }
 
