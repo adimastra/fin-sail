@@ -191,32 +191,33 @@ class _HoverScaleButtonState extends State<_HoverScaleButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       cursor: SystemMouseCursors.click,
-      child: AnimatedScale(
-        scale: _isHovered ? 1.16 : 1.0,
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: widget.backgroundColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: _isHovered ? 0.35 : 0.2),
-                blurRadius: _isHovered ? 16 : 10,
-                offset: Offset(0, _isHovered ? 5 : 4),
+      child: Tooltip(
+        message: widget.tooltip,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedScale(
+            scale: _isHovered ? 1.16 : 1.0,
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.backgroundColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: _isHovered ? 0.35 : 0.2),
+                    blurRadius: _isHovered ? 16 : 10,
+                    offset: Offset(0, _isHovered ? 5 : 4),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: Center(
-            child: IconButton(
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-              icon: widget.child,
-              tooltip: widget.tooltip,
-              onPressed: widget.onTap,
+              child: Center(
+                child: widget.child,
+              ),
             ),
           ),
         ),
