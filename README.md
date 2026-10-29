@@ -13,7 +13,6 @@ Fin Sail is built around a single, uncompromising principle: **pure expense visi
 
 ### 🌐 Live Production Deployments
 - **Primary Domain (Vercel)**: **[https://fin-sail.vercel.app](https://fin-sail.vercel.app)**
-- **Secondary Domain (GitHub Pages)**: **[https://adimastra.github.io/fin-sail/](https://adimastra.github.io/fin-sail/)**
 
 ---
 
@@ -115,14 +114,13 @@ npx serve -s build/web -l 4500
 
 ---
 
-## ☁️ Multi-Cloud Deployment (Vercel & GitHub Pages)
+## ☁️ Automated Deployment (Vercel)
 
 Fin Sail features an automated GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) that triggers on every push to `main`:
 1. Executes static analysis (`flutter analyze`).
 2. Runs the 24 automated unit and widget tests (`flutter test`).
 3. Compiles the production web bundle with injected Supabase credentials.
 4. Deploys to **Vercel** with SPA rewrites via `vercel.json`.
-5. Concurrently deploys to **GitHub Pages**.
 
 ---
 

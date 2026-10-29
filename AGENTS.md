@@ -23,7 +23,7 @@ This document serves as the single source of truth for AI coding agents and huma
 | :--- | :--- | :--- |
 | **Framework** | Flutter 3.47+ / Dart 3.x | Web-first with CanvasKit / HTML rendering |
 | **State Management** | `provider` (`ChangeNotifier`) | Central reactive store in `ExpenseProvider` |
-| **Hosting & CDN** | Vercel & GitHub Pages | Dual-cloud automated deployment via GitHub Actions CI/CD |
+| **Hosting & CDN** | Vercel | Automated deployment to Vercel via GitHub Actions CI/CD |
 | **Backend & Database** | Supabase (PostgreSQL) | Tables: `profiles`, `categories`, `transactions` |
 | **Security** | Row-Level Security (RLS) | Strictly isolated user data (`auth.uid() = user_id`) |
 | **Authentication** | Supabase Auth | Google SSO & 1-tap Guest Demo (Isolated Mock Data) |
@@ -39,7 +39,7 @@ This document serves as the single source of truth for AI coding agents and huma
 fin-logs/
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml             # Automated multi-cloud CI/CD (Vercel + GitHub Pages)
+│       └── deploy.yml             # Automated CI/CD (Vercel)
 ├── lib/
 │   ├── config/
 │   │   ├── supabase_config.dart   # Backend URLs, keys, and Demo Mode detection
