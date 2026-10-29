@@ -23,7 +23,7 @@ class KeypadExpenseScreen extends StatefulWidget {
 }
 
 class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
-  String _amountDigits = '20000'; // Default 20,000 IDR
+  String _amountDigits = '0'; // Initial 0 amount
   late DateTime _selectedDate;
   late TextEditingController _storeNameController;
   late FocusNode _storeNameFocusNode;
@@ -34,11 +34,8 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
-    _storeNameController = TextEditingController(text: 'burger king');
+    _storeNameController = TextEditingController(text: '');
     _storeNameFocusNode = FocusNode();
-    _storeNameFocusNode.addListener(() {
-      setState(() {}); // Rebuild to toggle numpad visibility when keyboard appears
-    });
   }
 
   @override
@@ -242,7 +239,6 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
 
     // 5 days ending at today
     final days = List.generate(5, (i) => now.subtract(Duration(days: 4 - i)));
-    final numpadVisible = !_storeNameFocusNode.hasFocus;
     final parsedAmount = double.tryParse(_amountDigits) ?? 0;
 
     return Container(
@@ -356,7 +352,7 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
             ),
           ),
 
-          if (numpadVisible) const Spacer(),
+          const Spacer(),
 
           // Centered Section: Currency, Category, and Underline Merchant Field
           Column(
@@ -495,7 +491,7 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
                           color: isDark ? Colors.white : AppTheme.pureBlack,
                         ),
                         decoration: InputDecoration(
-                          hintText: 'store / merchant name...',
+                          hintText: 'Merchant Name',
                           hintStyle: const TextStyle(
                             fontSize: 13,
                             color: AppTheme.grayTextMuted,
@@ -523,56 +519,23 @@ class _KeypadExpenseScreenState extends State<KeypadExpenseScreen> {
             ],
           ),
 
-          if (numpadVisible) const Spacer(),
+          const Spacer(),
 
-          // Circular Numeric Keypad (Hidden when software keyboard is shown)
-          if (numpadVisible) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 0, 28, 20),
-              child: Column(
-                children: [
-                  _buildKeypadRow(['1', '2', '3']),
-                  const SizedBox(height: 12),
-                  _buildKeypadRow(['4', '5', '6']),
-                  const SizedBox(height: 12),
-                  _buildKeypadRow(['7', '8', '9']),
-                  const SizedBox(height: 12),
-                  _buildKeypadRow(['000', '0', '✓']),
-                ],
-              ),
+          // Circular Numeric Keypad (Always visible)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(28, 0, 28, 20),
+            child: Column(
+              children: [
+                _buildKeypadRow(['1', '2', '3']),
+                const SizedBox(height: 12),
+                _buildKeypadRow(['4', '5', '6']),
+                const SizedBox(height: 12),
+                _buildKeypadRow(['7', '8', '9']),
+                const SizedBox(height: 12),
+                _buildKeypadRow(['000', '0', '✓']),
+              ],
             ),
-          ] else ...[
-            // When soft keyboard is open, show quick save button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white : AppTheme.pureBlack,
-                    foregroundColor: isDark ? AppTheme.pureBlack : Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  icon: _isSubmitting
-                      ? SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                            color: isDark ? AppTheme.pureBlack : Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Icon(Icons.check, size: 20),
-                  label: Text(
-                    _isSubmitting ? 'Saving...' : 'Save Expense',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  onPressed: _isSubmitting ? null : _submitExpense,
-                ),
-              ),
-            ),
-          ],
+          ),
         ],
       ),
     );

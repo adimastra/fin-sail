@@ -1,7 +1,7 @@
 # 🗺️ Fin Sail — Comprehensive Impact Mapping & Dependency Matrix
 
 > **Living Architecture Document**: Updated upon every realized application update per `.agents/skills/impact-mapping/SKILL.md`.  
-> **Last Updated**: 2026-10-25 (Gemini Edge Function Active & On-Load Chart Animations Fixed)
+> **Last Updated**: 2026-10-26 (Ocean Waves Animation, Expand Hover Highlighting, Keypad Defaults & 3/4 FAB Ratio)
 
 ---
 
@@ -139,7 +139,11 @@ When modifying any component, consult this table to assess which downstream depe
 | **`ExpenseProvider`** | `lib/providers/expense_provider.dart` | All screens, modals, and FAB buttons | Local Demo Mock, Supabase PostgREST sync, Phone Auth | `test/unit/expense_provider_test.dart`, `phone_auth_test.dart` |
 | **`TopCategoriesDonutChart`** | `lib/widgets/top_categories_donut_chart.dart` | `TransactionsListScreen` (Tab 1), Category Modal | On-load radial sweep & line score progress animation | `test/unit/action_guards_and_animation_test.dart`, `test/widget_test.dart` |
 | **`AnimatedActionDialog`** | `lib/widgets/animated_action_dialog.dart` | `TransactionDetailSheet`, `KeypadExpenseScreen`, `ReviewReceiptScreen`, `ManageCategoriesScreen` | Modal animations, popups, double-tap prevention guards | `test/unit/action_guards_and_animation_test.dart` |
-| **`TransactionTile`** | `lib/widgets/transaction_tile.dart` | `DashboardScreen`, `TransactionsListScreen`, `MonthDetailsSheetModal` | Category color accents, receipt flags | `test/widget_test.dart` |
+| **`TransactionTile`** | `lib/widgets/transaction_tile.dart` | `DashboardScreen`, `TransactionsListScreen`, `MonthDetailsSheetModal` | Center-outward hover expansion, 14px edge gap padding | `test/unit/keypad_wave_fab_test.dart`, `test/widget_test.dart` |
+| **`ExpandHoverHighlight`** | `lib/widgets/expand_hover_highlight.dart` | `TransactionTile`, `MainNavigationScreen` (Nav items), `MinimalTrendChart` (Month pills) | Middle-outward horizontal animated hover expansion, selected state styling | `test/unit/keypad_wave_fab_test.dart` |
+| **`MinimalTrendChart`** | `lib/widgets/minimal_trend_chart.dart` | `DashboardScreen` (Home Overview) | Continuous harmonic ocean wave animation on trend line, sailboat tangent tracking | `test/unit/keypad_wave_fab_test.dart` |
+| **`MainNavigationScreen`** | `lib/screens/main_navigation_screen.dart` | Bottom Navigation Shell | 3/4 FAB proportional sizing (48px Scan : 64px Add), expanding hover nav items | `test/unit/keypad_wave_fab_test.dart` |
+| **`KeypadExpenseScreen`** | `lib/screens/keypad_expense_screen.dart` | Manual Expense Entry Modal | Default 0 amount, empty merchant placeholder ('Merchant Name'), persistent numberpad | `test/unit/keypad_wave_fab_test.dart` |
 | **`CurrencyFormat`** | `lib/utils/currency_format.dart` | All price displays, cards, keypad, and donut chart | `NumberFormat` localization | `test/unit/currency_format_test.dart` |
 | **`SupabaseService`** | `lib/services/supabase_service.dart` | `ExpenseProvider` | Supabase Client, Auth (`auth.users`), Storage, RLS | `test/unit/phone_auth_test.dart` |
 | **`VercelConfig`** | `vercel.json` | Vercel Edge Hosting, clean URLs, SPA routing | Static delivery | Deployment pipeline check |
@@ -148,7 +152,7 @@ When modifying any component, consult this table to assess which downstream depe
 
 ## 🧪 3. Unit Test Coverage Matrix
 
-Every module in Fin Sail is mapped to automated unit tests (**30 tests, 100% pass rate**):
+Every module in Fin Sail is mapped to automated unit tests (**36 tests, 100% pass rate**):
 
 | Module / Area | Test File | Coverage Details | Verification Command |
 | :--- | :--- | :--- | :--- |
@@ -158,6 +162,7 @@ Every module in Fin Sail is mapped to automated unit tests (**30 tests, 100% pas
 | **Transactions & Receipts** | `test/unit/transaction_model_test.dart` | Expense transaction serialization, receipt flags, itemized line items list, confidence calculation | `flutter test test/unit/transaction_model_test.dart` |
 | **Expense State & Providers** | `test/unit/expense_provider_test.dart` | Mock data seeding, month-over-month trend % delta, add/edit/delete transactions, custom category creation & default protection | `flutter test test/unit/expense_provider_test.dart` |
 | **App Smoke Test** | `test/widget_test.dart` | Material app bootstrap, mobile frame wrapping & theme initialization | `flutter test test/widget_test.dart` |
+| **Keypad, Ocean Waves & FABs** | `test/unit/keypad_wave_fab_test.dart` | FAB 3/4 ratio (48px/64px = 0.75), dynamic ocean wave curve generation, keypad zero-initial input logic, ExpandHoverHighlight & TransactionTile gap padding | `flutter test test/unit/keypad_wave_fab_test.dart` |
 
 ---
 

@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../config/theme.dart';
+import 'expand_hover_highlight.dart';
 
 class MinimalTrendChart extends StatefulWidget {
   final DateTime selectedMonth;
@@ -28,7 +29,12 @@ class MinimalTrendChart extends StatefulWidget {
     ];
   }
 
-  static Path buildWavePath(double w, double h, {List<double>? monthlyTotals}) {
+  static Path buildWavePath(
+    double w,
+    double h, {
+    List<double>? monthlyTotals,
+    double wavePhase = 0.0,
+  }) {
     final totals = (monthlyTotals != null && monthlyTotals.length == 5)
         ? monthlyTotals
         : [950000.0, 1155000.0, 1450000.0, 1350000.0, 1152000.0];
@@ -49,7 +55,6 @@ class MinimalTrendChart extends StatefulWidget {
       return bottomY - norm * (bottomY - topY);
     }).toList();
 
-    final pts = <Offset>[];
     final yStart = (yPoints[0] + (yPoints[0] - yPoints[1]) * 0.35).clamp(
       h * 0.18,
       h * 0.82,
@@ -59,11 +64,22 @@ class MinimalTrendChart extends StatefulWidget {
       h * 0.82,
     );
 
-    pts.add(Offset(0.0, yStart));
-    for (int i = 0; i < 5; i++) {
-      pts.add(Offset((i + 0.5) / 5.0 * w, yPoints[i]));
+    // 7 Natural Control Points matching the 5 months + edge anchors
+    final rawPts = <Offset>[
+      Offset(0.0, yStart),
+      for (int i = 0; i < 5; i++) Offset((i + 0.5) / 5.0 * w, yPoints[i]),
+      Offset(w, yEnd),
+    ];
+
+    // Smooth sinusoidal ocean wave modulation across the 7 control points
+    // Keeps the Catmull-Rom spline 100% smooth, fluid, and free of jagged micro-wrinkles
+    final pts = <Offset>[];
+    for (final pt in rawPts) {
+      final xNorm = pt.dx / (w > 0 ? w : 1.0);
+      final waveOffset = sin(xNorm * 2 * pi - wavePhase) * 3.5;
+      final clampedY = (pt.dy + waveOffset).clamp(h * 0.16, h * 0.84);
+      pts.add(Offset(pt.dx, clampedY));
     }
-    pts.add(Offset(w, yEnd));
 
     final path = Path();
     path.moveTo(pts[0].dx, pts[0].dy);
@@ -93,6 +109,7 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
   late AnimationController _voyageController;
   late Animation<double> _voyageAnimation;
   late AnimationController _bobbingController;
+  late AnimationController _waveController;
 
   double _currentProgress = 0.9;
   bool _facingRight = true;
@@ -150,6 +167,11 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     )..repeat(reverse: true);
+
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 4000),
+    )..repeat();
   }
 
   @override
@@ -177,6 +199,7 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
   void dispose() {
     _voyageController.dispose();
     _bobbingController.dispose();
+    _waveController.dispose();
     super.dispose();
   }
 
@@ -196,20 +219,23 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
             builder: (context, constraints) {
               final w = constraints.maxWidth;
               const h = 68.0;
-              final path = MinimalTrendChart.buildWavePath(
-                w,
-                h,
-                monthlyTotals: widget.monthlyTotals,
-              );
-              final pathMetrics = path.computeMetrics().toList();
-
               return AnimatedBuilder(
                 animation: Listenable.merge([
                   _voyageAnimation,
+                  _waveController,
                   _bobbingController,
                 ]),
                 builder: (context, _) {
                   final t = _voyageAnimation.value;
+                  final wavePhase = _waveController.value * 2 * pi;
+                  final path = MinimalTrendChart.buildWavePath(
+                    w,
+                    h,
+                    monthlyTotals: widget.monthlyTotals,
+                    wavePhase: wavePhase,
+                  );
+                  final pathMetrics = path.computeMetrics().toList();
+
                   Offset shipPos = Offset(w * t, h * 0.5);
                   double slopeAngle = 0.0;
 
@@ -225,8 +251,8 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
                     }
                   }
 
-                  // Oceanic bobbing motion while sailing or at rest
-                  final bobbingY = sin(_bobbingController.value * 2 * pi) * 1.8;
+                  // Oceanic micro-bobbing motion while sailing or at rest
+                  final bobbingY = sin(_bobbingController.value * 2 * pi) * 1.5;
                   final bobbingTilt =
                       cos(_bobbingController.value * 2 * pi) * 0.035;
 
@@ -289,24 +315,22 @@ class _MinimalTrendChartState extends State<MinimalTrendChart>
             final name = monthNames[m.month - 1];
 
             return Expanded(
-              child: InkWell(
+              child: ExpandHoverHighlight(
                 onTap: () => widget.onMonthSelected(m),
                 borderRadius: BorderRadius.circular(8),
+                padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      name,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w800
-                            : FontWeight.w400,
-                        color: isSelected
-                            ? (isDark ? Colors.white : AppTheme.pureBlack)
-                            : AppTheme.grayTextMuted,
-                        letterSpacing: -0.2,
-                      ),
+                  child: Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w400,
+                      color: isSelected
+                          ? (isDark ? Colors.white : AppTheme.pureBlack)
+                          : AppTheme.grayTextMuted,
+                      letterSpacing: -0.2,
                     ),
                   ),
                 ),

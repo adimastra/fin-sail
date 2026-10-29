@@ -5,6 +5,7 @@ import 'keypad_expense_screen.dart';
 import 'receipt_scanner_modal.dart';
 import 'settings_screen.dart';
 import 'transactions_list_screen.dart';
+import '../widgets/expand_hover_highlight.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -59,9 +60,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // 1. Scan Receipt Circular Button (Scales up on hover)
+                  // 1. Scan Receipt Circular Button (Scales up on hover - 3/4 size of Add Expense button: 48px vs 64px)
                   _HoverScaleButton(
-                    size: 50,
+                    size: 48,
                     backgroundColor: isDark ? Colors.white : AppTheme.pureBlack,
                     tooltip: 'Scan Receipt',
                     onTap: () => ReceiptScannerModal.show(context),
@@ -73,15 +74,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // 2. Add Manual Expense Circular Button (Scales up on hover)
+                  // 2. Add Manual Expense Circular Button (Bigger FAB: 64px)
                   _HoverScaleButton(
-                    size: 56,
+                    size: 64,
                     backgroundColor: isDark ? const Color(0xFF27272A) : AppTheme.pureBlack,
                     tooltip: 'Manual Expense',
                     onTap: () => KeypadExpenseScreen.show(context),
                     child: const Icon(
                       Icons.add,
-                      size: 28,
+                      size: 30,
                       color: Colors.white,
                     ),
                   ),
@@ -142,26 +143,20 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isSelected = _currentIndex == index;
 
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _onTabTapped(index),
-      child: Tooltip(
-        message: tooltip,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
-          decoration: isSelected
-              ? BoxDecoration(
-                  color: isDark ? Colors.white : AppTheme.pureBlack,
-                  borderRadius: BorderRadius.circular(20),
-                )
-              : null,
-          child: Icon(
-            icon,
-            size: 22,
-            color: isSelected
-                ? (isDark ? AppTheme.pureBlack : Colors.white)
-                : AppTheme.grayTextMuted,
-          ),
+    return Tooltip(
+      message: tooltip,
+      child: ExpandHoverHighlight(
+        onTap: () => _onTabTapped(index),
+        isSelected: isSelected,
+        selectedColor: isDark ? Colors.white : AppTheme.pureBlack,
+        borderRadius: BorderRadius.circular(20),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+        child: Icon(
+          icon,
+          size: 22,
+          color: isSelected
+              ? (isDark ? AppTheme.pureBlack : Colors.white)
+              : AppTheme.grayTextMuted,
         ),
       ),
     );
@@ -215,10 +210,14 @@ class _HoverScaleButtonState extends State<_HoverScaleButton> {
               ),
             ],
           ),
-          child: IconButton(
-            icon: widget.child,
-            tooltip: widget.tooltip,
-            onPressed: widget.onTap,
+          child: Center(
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+              icon: widget.child,
+              tooltip: widget.tooltip,
+              onPressed: widget.onTap,
+            ),
           ),
         ),
       ),
